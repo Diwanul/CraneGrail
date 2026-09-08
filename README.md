@@ -30,11 +30,22 @@ diwanul-web/
 
 ### 2. 拉代码、装依赖
 
+这是**私有仓库**，新设备上得先认证。最省事的办法是用 GitHub CLI（<https://cli.github.com>）：
+
 ```bash
-git clone git@github.com:Diwanul/diwanul-web.git
+gh auth login                          # GitHub.com → HTTPS → 浏览器登录
+gh api user --jq '{login,id}'          # 必须是 {"login":"Diwanul","id":309150450}
+gh repo clone Diwanul/diwanul-web
 cd diwanul-web/blog
 npm install
 ```
+
+> ⚠️ 有两个 GitHub 账户：**Diwanul（id 309150450）才是这个项目用的**，
+> yfhu25（id 55041545）是老身份。`gh` 显示的账户名不可信，永远按 **id** 核对。
+> 已登录过多个账户时用 `gh auth switch --user Diwanul` 切过来。
+
+`gh auth login` 会顺带配好 git 凭据助手，之后 `git pull` / `git push` 不用再输密码。
+不想装 gh 就自己配 SSH key，然后 `git clone git@github.com:Diwanul/diwanul-web.git`。
 
 > `npm install` 只在 `blog/` 里跑，`home/` 是纯静态 HTML 没有依赖。
 > 注意别并发跑两次 `npm install`，会把 astro 包装坏（踩过）。

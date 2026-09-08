@@ -21,3 +21,6 @@ Thumbs.db
 
 # Static Web Apps CLI 缓存
 .swa/
+
+# Claude Code 的本地工作目录（worktrees 等）
+.claude/
