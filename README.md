@@ -3,8 +3,6 @@
 一个游戏 UI 风格的个人博客框架：对话框式的封面幻灯片、横向章节环和纵向文章列组成的主页、在主页里就地展开的阅读页。
 所有框线都是脚本按元素尺寸实时生成的手写笔画。纯静态站点，基于 [Astro](https://astro.build)。
 
-线上示例：[www.diwanul.xyz](https://www.diwanul.xyz)
-
 **代码与内容完全分离。** 仓库里只有框架和一份能跑通的示例内容（`content.example/`）；
 你的文章、图片、字体和配置放在独立的 `content/` 目录里，它不进版本控制。
 
@@ -114,4 +112,3 @@ CSP 写在 `dist/staticwebapp.config.json` 里。Astro 会把小脚本自动内�
 ## 许可证
 
 代码以 [MIT](LICENSE) 许可证发布。`content.example/` 里的示例文章仅作演示；
-其中《荷塘月色》（朱自清，1927）已进入公有领域。
