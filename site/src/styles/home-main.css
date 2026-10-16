@@ -1,0 +1,552 @@
+/*
+ * 主页：banner、文章列 + 标示线、章节行、页脚。
+ * 电脑端是宽松的横向布局；窄屏（≤ 720px）保留原来紧凑的手机排版。
+ */
+
+.home {
+	position: fixed;
+	inset: 0;
+	z-index: 10;
+	display: grid;
+	/* 章节行、页脚都是固定高度：切换语言时不会挤动章节卡片 */
+	grid-template-rows: var(--banner-h) 1fr calc(var(--cat-h) * var(--cat-active-scale) + calc(30 * var(--u))) calc(44 * var(--u));
+	pointer-events: none;
+	/*
+	 * 标示线的 x：电脑端左右各留出一到两个章节卡片宽的空白。
+	 * 章节行也以它为基准对齐（见 scripts/home/track.ts 的 slotX）。
+	 */
+	/*
+	 * 标示线的 x：章节行里「当前」是左边第二格，标示线压在它左缘上。
+	 * 左边留一个格子给前一个章节，文章卡片的右边界和标示线关于设计稿中线对称。
+	 */
+	--rail-x: calc(var(--ox) + 48px + var(--cat-w) + var(--cat-gap));
+	--block-inset: calc(26 * var(--u));
+}
+html[data-stage='home'] .home {
+	pointer-events: auto;
+}
+/* 主页内容在封面阶段一律藏起来 */
+.home .list,
+.home .rail {
+	visibility: hidden;
+}
+html[data-stage='home'] .home .list,
+html[data-stage='home'] .home .rail,
+html.show-home .home .list,
+html.show-home .home .rail {
+	visibility: visible;
+}
+
+/* ---------- banner ---------- */
+
+.banner {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	/* 两侧按钮也收进居中栏里 */
+	padding: 0 calc(var(--ox) + 28px);
+}
+.banner-line {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 2px;
+	overflow: visible;
+}
+.bl {
+	fill: none;
+	stroke: var(--border-strong);
+	stroke-width: 1;
+	stroke-dasharray: 1;
+	stroke-dashoffset: 1;
+}
+.side {
+	opacity: 0;
+}
+.search-btn,
+.lang {
+	display: inline-flex;
+	align-items: center;
+	gap: calc(6 * var(--u));
+	height: calc(38 * var(--u));
+	padding: calc(8 * var(--u));
+	border: 0;
+	background: none;
+	border-radius: calc(19 * var(--u));
+	color: var(--fg-strong);
+	cursor: pointer;
+	transition: background 0.2s;
+}
+.search-btn {
+	width: calc(38 * var(--u));
+}
+.search-btn:hover,
+.lang:hover {
+	background: rgba(255, 255, 255, 0.08);
+}
+.search-btn svg,
+.lang svg {
+	flex: none;
+	width: calc(22 * var(--u));
+	height: calc(22 * var(--u));
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.5;
+	stroke-linecap: round;
+}
+.lang-code {
+	min-width: 1.6em;
+	font-size: 0.85rem;
+	letter-spacing: 0.06em;
+	color: var(--fg);
+}
+
+/* 搜索：放大镜右侧延伸出一条线，线上方就是输入框 */
+.search {
+	display: flex;
+	align-items: center;
+	gap: calc(6 * var(--u));
+}
+.search-field {
+	position: relative;
+	display: block;
+	width: 0;
+	height: calc(34 * var(--u));
+	overflow: hidden;
+	transition: width calc(0.32s / var(--speed, 1)) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.search.open .search-field {
+	width: min(calc(280 * var(--u)), 40vw);
+}
+#search-input {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: calc(4 * var(--u));
+	width: 100%;
+	padding: 0 2px;
+	border: 0;
+	background: none;
+	color: var(--fg-strong);
+	font: inherit;
+	font-size: 0.95rem;
+	letter-spacing: 0.04em;
+	outline: none;
+	opacity: 0;
+	transition: opacity calc(0.2s / var(--speed, 1));
+}
+#search-input::-webkit-search-cancel-button {
+	display: none;
+}
+.search.open #search-input {
+	opacity: 1;
+	transition-delay: calc(0.14s / var(--speed, 1));
+}
+.search-line {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 100%;
+	height: 2px;
+	overflow: visible;
+}
+#search-line {
+	fill: none;
+	stroke: var(--accent);
+	stroke-width: 1.2;
+	stroke-dasharray: 1;
+	stroke-dashoffset: 1;
+}
+
+/* ---------- 文章列：标示线 + 文章卡片 ---------- */
+
+.stage {
+	position: relative;
+	overflow: hidden;
+}
+/* 标示线画在一张盖住整个主页的 svg 上：从章节行的左框起笔，向上拉到文章区顶部 */
+.rail {
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	overflow: visible;
+	pointer-events: none;
+	z-index: 1;
+}
+.list {
+	position: absolute;
+	inset: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	/*
+	 * 两层遮罩相乘（mask-composite: intersect）：
+	 *   横向：越过标示线就渐隐，左边 60px 内到完全透明；
+	 *   纵向：上下两头各 70px 缓缓淡出，露出一半的那篇不会被一刀切断。
+	 */
+	-webkit-mask-image:
+		linear-gradient(to right, transparent calc(var(--rail-x) - 60px), #000 var(--rail-x)),
+		linear-gradient(to bottom, transparent 0, #000 70px, #000 calc(100% - 70px), transparent 100%);
+	-webkit-mask-composite: source-in;
+	mask-image:
+		linear-gradient(to right, transparent calc(var(--rail-x) - 60px), #000 var(--rail-x)),
+		linear-gradient(to bottom, transparent 0, #000 70px, #000 calc(100% - 70px), transparent 100%);
+	mask-composite: intersect;
+}
+.list[hidden] {
+	display: none;
+}
+/*
+ * 卡片没有边框和底色：左边是标示线，右上、右下两个角由 .block-frame 画出来，
+ * 右边界和标示线关于卡片对称（但不画）。
+ */
+.block,
+.empty {
+	position: absolute;
+	left: calc(var(--rail-x) + var(--block-inset));
+	top: 0;
+	/* 右边界和标示线关于屏幕中线对称 */
+	width: calc(100vw - 2 * var(--rail-x) - var(--block-inset));
+	max-width: var(--block-w);
+	height: var(--block-h);
+	/* 缩放以标示线为原点：缩小的卡片左边那个荆棘饰仍挂在线上 */
+	transform-origin: calc(-1 * var(--block-inset)) center;
+	will-change: transform, opacity;
+	transition:
+		transform calc(0.34s / var(--speed, 1)) cubic-bezier(0.2, 0.8, 0.2, 1),
+		opacity calc(0.34s / var(--speed, 1));
+}
+.no-trans .block,
+.no-trans .empty {
+	transition: none;
+}
+.empty {
+	display: flex;
+	align-items: center;
+	color: var(--fg-muted);
+	font-family: var(--font-body);
+	font-size: var(--fs-body);
+	letter-spacing: 0.06em;
+	text-shadow: var(--text-shadow);
+}
+.block-frame {
+	position: absolute;
+	left: -60px;
+	top: -60px;
+	width: calc(100% + 120px);
+	height: calc(100% + 120px);
+	overflow: visible;
+	pointer-events: none;
+}
+.block-link {
+	position: relative;
+	display: flex;
+	align-items: center;
+	height: 100%;
+	gap: calc(36 * var(--u));
+	padding: 0 calc(56 * var(--u)) 0 calc(28 * var(--u));
+	text-decoration: none;
+	color: inherit;
+	opacity: 0;
+}
+.thumb {
+	flex: none;
+	width: var(--block-img-w);
+	height: 100%;
+	overflow: hidden;
+	background: linear-gradient(160deg, #26262c, #141418);
+	box-shadow: 0 calc(8 * var(--u)) calc(28 * var(--u)) rgba(0, 0, 0, 0.6);
+}
+.thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+.text {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: calc(14 * var(--u));
+}
+.title {
+	font-family: var(--font-title);
+	font-size: var(--fs-title);
+	line-height: 1.3;
+	color: var(--fg-strong);
+	text-shadow: var(--text-shadow);
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+.pin {
+	display: inline-block;
+	margin-right: calc(10 * var(--u));
+	padding: 0 calc(7 * var(--u));
+	font-family: var(--font-body);
+	font-size: 0.8rem;
+	line-height: 1.7;
+	vertical-align: calc(6 * var(--u));
+	color: var(--bg);
+	background: var(--accent);
+	border-radius: 2px;
+	text-shadow: none;
+}
+.desc {
+	font-family: var(--font-body);
+	font-size: var(--fs-body);
+	line-height: 1.8;
+	color: var(--fg);
+	text-shadow: var(--text-shadow);
+	display: -webkit-box;
+	-webkit-line-clamp: 4;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+.date {
+	font-family: var(--font-body);
+	font-size: 0.85rem;
+	letter-spacing: 0.04em;
+	color: var(--fg-muted);
+	text-shadow: var(--text-shadow);
+}
+.block:not(.active) .text {
+	opacity: 0.72;
+	transition: opacity 0.3s;
+}
+
+/* ---------- 章节行：没有边框和底色，左边一个竖向小框 ---------- */
+
+.cats {
+	position: relative;
+	opacity: 0;
+	height: calc(var(--cat-h) * var(--cat-active-scale) + calc(30 * var(--u)));
+	overflow: hidden;
+}
+/* 章节行是一个环：每张卡片各自绝对定位，位置由 scripts/home/track.ts 每帧写进 transform */
+.cats-track {
+	position: absolute;
+	inset: 0;
+}
+.cat {
+	position: absolute;
+	left: 0;
+	top: 50%;
+	will-change: transform, opacity;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: calc(14 * var(--u));
+	width: var(--cat-w);
+	height: var(--cat-h);
+	/* 左边让出标示线上那个标记的位置 */
+	padding: 0 6px 0 26px;
+	color: var(--fg-muted);
+	border: 0;
+	background: none;
+	cursor: pointer;
+	transition: color 0.25s;
+}
+.cat[hidden] {
+	display: none;
+}
+/* 框：左边挂在竖线上的荆棘饰 + 右上右下两个直角钩；svg 比卡片大一圈 */
+.cat-frame {
+	position: absolute;
+	left: -40px;
+	top: -40px;
+	width: calc(100% + 80px);
+	height: calc(100% + 80px);
+	overflow: visible;
+	pointer-events: none;
+}
+/*
+ * 当前章节「凸出」：--e（0..1，离当前格越近越大，由脚本每帧写入）驱动放大（transform 里）、
+ * 背后的暗晕、图标和文字的提亮与阴影加深。滑动途中是连续过渡的。
+ */
+.cat {
+	--e: 0;
+	transform-origin: 0 50%;
+}
+.cat::before {
+	content: '';
+	position: absolute;
+	inset: -22px -40px -22px -14px;
+	z-index: -1;
+	border-radius: 40%;
+	background: radial-gradient(closest-side, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.35) 60%, transparent);
+	opacity: var(--e);
+	pointer-events: none;
+}
+.cat .cat-icon,
+.cat .cat-label {
+	filter: drop-shadow(0 0 calc(var(--e) * 8px) rgba(0, 0, 0, 0.95));
+}
+.cat.active {
+	color: var(--accent);
+	/* 放大后会压住右边那张的一部分，所以要在它上面 */
+	z-index: 2;
+}
+.cat.active .cat-label {
+	color: #fff;
+}
+.cat:hover {
+	color: var(--fg-strong);
+}
+.cat-icon {
+	flex: none;
+	width: 36px;
+	height: 36px;
+	object-fit: contain;
+}
+svg.cat-icon {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.3;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+.cat-text {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0;
+}
+.cat-label {
+	font-family: var(--font-title);
+	/* 比一般标题略小：Trajan 字宽，章节名放不下 */
+	font-size: var(--fs-cat);
+	line-height: 1.15;
+	letter-spacing: 0.06em;
+	color: var(--fg-strong);
+	text-shadow: var(--text-shadow);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+}
+.cat:not(.active) .cat-label {
+	color: var(--fg);
+}
+.cat-count {
+	font-family: var(--font-body);
+	font-size: 0.8rem;
+	color: var(--fg-muted);
+	text-shadow: var(--text-shadow);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 页脚 ---------- */
+
+/* 高度固定，不随文字（中英文长短、换行）变化，章节行的位置就不会跟着动 */
+.foot {
+	height: calc(44 * var(--u));
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	gap: calc(4 * var(--u));
+	padding: 0 calc(28 * var(--u)) calc(6 * var(--u));
+	overflow: hidden;
+	font-size: 0.72rem;
+	line-height: 1.3;
+	letter-spacing: 0.08em;
+	color: var(--fg-muted);
+	white-space: nowrap;
+	opacity: 0;
+	transition: opacity 0.6s;
+}
+html[data-stage='home'] .foot {
+	opacity: 0.6;
+}
+.hint,
+.copy {
+	margin: 0;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.copy {
+	font-size: 0.68rem;
+	letter-spacing: 0.1em;
+	opacity: 0.85;
+}
+
+/* ---------- 窄屏：原来的手机排版 ---------- */
+
+@media (max-width: 720px) {
+	.home {
+		--rail-x: calc(26 * var(--u));
+		--block-inset: calc(14 * var(--u));
+		grid-template-rows: var(--banner-h) 1fr calc(110 * var(--u)) calc(44 * var(--u));
+	}
+	.banner {
+		padding: 0 calc(14 * var(--u));
+	}
+	.search.open .search-field {
+		width: 46vw;
+	}
+	.block,
+	.empty {
+		width: calc(100vw - var(--rail-x) - var(--block-inset) - calc(20 * var(--u)));
+		height: calc(200 * var(--u));
+	}
+	.thumb {
+		width: calc(112 * var(--u));
+	}
+	.block-link {
+		gap: calc(16 * var(--u));
+		padding: 0 calc(18 * var(--u)) 0 calc(12 * var(--u));
+	}
+	.title {
+		font-size: calc(20 * var(--u));
+	}
+	.desc {
+		-webkit-line-clamp: 3;
+	}
+	.cats {
+		height: calc(110 * var(--u));
+	}
+	.cat {
+		width: calc(150 * var(--u));
+		height: calc(64 * var(--u));
+		gap: calc(10 * var(--u));
+	}
+	.cat-icon {
+		width: calc(32 * var(--u));
+		height: calc(32 * var(--u));
+	}
+	.cat-label {
+		font-size: calc(20 * var(--u));
+	}
+	.hint {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.block,
+	.cat,
+	.foot,
+	.search-field,
+	#search-input {
+		transition: none;
+	}
+}
+
+/* 选中的卡片已经由框标出来了，不再叠一道浏览器的焦点框 */
+.block-link:focus-visible {
+	outline: none;
+}
+.block-link:focus-visible .title {
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: calc(6 * var(--u));
+}

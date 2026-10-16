@@ -1,0 +1,387 @@
+/*
+ * 文章阅读：和主页同一套布局——左边标示线，正文在线右边，左右留白对称。
+ * 标示线这时是目录：每个小节标题在线上的高度挂一个小三角，标题名字写在线左边；
+ * 正在读的那一节换成大三角，名字提亮（见 scripts/reader.ts）。
+ *
+ * 两种场景用同一份样式：
+ *   主页阅读模式  html.reading，.reader 叠在文章列的位置上，自己滚动
+ *   独立页面      body.article-page，.reader 就是整页
+ */
+
+.reader {
+	position: absolute;
+	inset: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+	opacity: 0;
+	pointer-events: none;
+}
+html.reading .reader {
+	pointer-events: auto;
+}
+/* 阅读时文章卡片列和章节行让出位置 */
+html.reading .list {
+	pointer-events: none;
+}
+
+.reader-doc {
+	position: relative;
+	/* 正文栏：线右边 inset 起，宽度不超过 720 */
+	margin-left: calc(var(--rail-x) + var(--block-inset) + 12px);
+	width: min(720px, calc(100vw - 2 * var(--rail-x) - 2 * var(--block-inset)));
+	padding: 28px 0 60px;
+}
+
+.doc-hero {
+	position: relative;
+	margin: 0 0 40px;
+	aspect-ratio: 16 / 9;
+	overflow: visible;
+}
+.doc-hero img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	box-shadow: 0 14px 44px rgba(0, 0, 0, 0.6);
+}
+
+/* 正文：沿用 global.css 的 .prose，字体换成站点正文字体并加阴影（压在图片背景上） */
+.doc-body {
+	font-family: var(--font-body);
+	font-size: calc(var(--fs-body) * 1.1);
+	line-height: 2;
+	color: var(--fg);
+	text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);
+}
+.doc-body :is(h1, h2, h3) {
+	position: relative;
+	font-family: var(--font-title);
+	font-weight: normal;
+	letter-spacing: 0.04em;
+	color: #fff;
+	text-shadow: var(--text-shadow);
+	scroll-margin-top: 30px;
+}
+.doc-body h1 {
+	font-size: calc(var(--fs-title) * 1.4);
+	margin-top: 0.6em;
+}
+.doc-body h2 {
+	font-size: var(--fs-title);
+	margin-top: 2.4em;
+}
+.doc-body h3 {
+	font-size: calc(var(--fs-title) * 0.8);
+}
+.doc-body blockquote {
+	position: relative;
+	border-left: 0;
+	padding: 0.4em 1.4em;
+	color: var(--fg);
+	font-style: normal;
+}
+.doc-body pre {
+	position: relative;
+	background: rgba(0, 0, 0, 0.42);
+	border-radius: 0;
+	text-shadow: none;
+}
+.doc-body code {
+	text-shadow: none;
+}
+.doc-body a {
+	color: #fff;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 4px;
+}
+.doc-body hr {
+	border-top-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 装饰笔画（脚本按元素尺寸生成）：引用一个角，代码块上下两个角，封面图左上右下两个角 */
+.deco {
+	position: absolute;
+	left: -40px;
+	top: -40px;
+	width: calc(100% + 80px);
+	height: calc(100% + 80px);
+	overflow: visible;
+	pointer-events: none;
+	filter: var(--frame-shadow);
+}
+
+/* ---------- 目录：挂在标示线上 ---------- */
+
+.toc {
+	position: fixed;
+	left: 0;
+	top: 0;
+	width: 100vw;
+	height: 100vh;
+	pointer-events: none;
+	z-index: 2;
+	opacity: 0;
+}
+.toc svg {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+	filter: var(--frame-shadow);
+}
+.toc-item {
+	position: absolute;
+	right: calc(100vw - var(--rail-x) + 30px);
+	transform: translateY(-50%);
+	/* 不超过线左边的空白；太长就换行 */
+	width: max-content;
+	max-width: min(220px, calc(var(--rail-x) - var(--ox) - 44px));
+	font-family: var(--font-title);
+	line-height: 1.35;
+	letter-spacing: 0.04em;
+	text-align: right;
+	color: var(--fg-muted);
+	text-shadow: var(--text-shadow);
+	white-space: normal;
+	overflow-wrap: anywhere;
+	text-decoration: none;
+	pointer-events: auto;
+	transition: color 0.3s;
+}
+/* 级别越高字越大 */
+.toc-item.lv1 {
+	font-size: 18px;
+}
+.toc-item.lv2 {
+	font-size: 16px;
+}
+.toc-item.lv3 {
+	font-size: 14px;
+}
+/* 滑动框：骑在标示线上，框住这一屏对应的那一段 */
+.toc-view {
+	position: absolute;
+	width: 22px;
+	margin-left: -11px;
+	border: 2px solid var(--frame);
+	border-left-width: 0;
+	border-right-width: 0;
+	background: linear-gradient(90deg, transparent 9px, #fff 9px 13px, transparent 13px), rgba(236, 234, 230, 0.1);
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 12px rgba(0, 0, 0, 0.7);
+	box-sizing: border-box;
+	transition: top 0.18s ease-out, height 0.18s ease-out;
+}
+.toc-item:hover {
+	color: var(--fg-strong);
+}
+.toc-item.on {
+	color: #fff;
+}
+
+/* ---------- 独立页面 ---------- */
+
+/* 独立页面没有 .home，标示线的位置在这里按同样的公式算一遍 */
+body.article-page {
+	--rail-x: calc(var(--ox) + 48px + var(--cat-w) + var(--cat-gap));
+	--block-inset: 26px;
+	min-height: 100vh;
+	background: radial-gradient(ellipse at 50% 0%, #1b1d26, #0a0a0c 70%);
+}
+body.article-page .reader {
+	position: relative;
+	inset: auto;
+	overflow: visible;
+	opacity: 1;
+	pointer-events: auto;
+}
+body.article-page .toc {
+	opacity: 1;
+}
+body.article-page .rail {
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	overflow: visible;
+	pointer-events: none;
+	z-index: 1;
+	filter: var(--frame-shadow);
+}
+
+@media (max-width: 720px) {
+	.reader-doc {
+		margin-left: calc(var(--rail-x) + 14px);
+		width: calc(100vw - var(--rail-x) - 28px);
+	}
+	.toc-item {
+		display: none;
+	}
+}
+
+/* ---------- About ---------- */
+
+.about {
+	padding-top: 40px;
+}
+.about-head {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	padding: 34px 0 30px;
+	margin-bottom: 64px;
+}
+.about-av {
+	width: 132px;
+	height: 132px;
+	border-radius: 50%;
+	overflow: hidden;
+	box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22), 0 0 0 6px rgba(0, 0, 0, 0.35), 0 18px 50px rgba(0, 0, 0, 0.6);
+}
+.about-av img,
+.about-av-blank {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	background: #2a2c34;
+}
+.about-names {
+	margin: 22px 0 0;
+	font-family: var(--font-title);
+	font-size: calc(var(--fs-title) * 1.15);
+	letter-spacing: 0.1em;
+	color: #fff;
+	text-shadow: var(--text-shadow);
+}
+.about-dot {
+	margin: 0 0.6em;
+	color: var(--fg-muted);
+}
+.about-tag {
+	margin: 10px 0 0;
+	max-width: 30em;
+	font-family: var(--font-body);
+	font-size: var(--fs-body);
+	line-height: 1.8;
+	color: var(--fg);
+	text-shadow: var(--text-shadow);
+}
+.about-body {
+	max-width: 640px;
+	margin: 0 auto;
+}
+.about-empty {
+	text-align: center;
+	color: var(--fg-muted);
+}
+.about-links {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 22px 34px;
+	margin: 46px auto 0;
+	max-width: 640px;
+}
+.about-link {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 170px;
+	padding: 14px 22px;
+	text-decoration: none;
+	color: inherit;
+}
+.about-link-label {
+	font-family: var(--font-title);
+	font-size: 18px;
+	letter-spacing: 0.08em;
+	color: #fff;
+	text-shadow: var(--text-shadow);
+}
+.about-link-href {
+	font-family: var(--font-body);
+	font-size: 13px;
+	color: var(--fg-muted);
+}
+.about-link:hover .about-link-label {
+	text-decoration: underline;
+	text-underline-offset: 5px;
+	text-decoration-thickness: 1px;
+}
+
+/* ---------- 阅读时的章节行：只留当前这一格，右边写文章标题和发布时间 ---------- */
+
+/* 其余章节卡片淡去（不是隐藏：滑动换格时还要看得到它们滑过去） */
+html.reading .cat:not(.active) {
+	opacity: 0 !important;
+	transition: opacity 0.3s;
+}
+.read-info {
+	position: absolute;
+	top: 50%;
+	/* 当前格放大后的右缘再往右一点 */
+	left: calc(var(--rail-x) + var(--cat-w) * var(--cat-active-scale) + 40px);
+	right: calc(var(--ox) + 48px);
+	transform: translate(0, -50%);
+	display: flex;
+	align-items: baseline;
+	gap: 0 26px;
+	flex-wrap: wrap;
+	opacity: 0;
+	pointer-events: none;
+	white-space: nowrap;
+	overflow: hidden;
+}
+.read-info .info-title {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-family: var(--font-title);
+	font-size: calc(var(--fs-cat) * 1.05);
+	letter-spacing: 0.06em;
+	color: #fff;
+	text-shadow: var(--text-shadow);
+}
+.read-info .info-meta {
+	display: inline-flex;
+	gap: 18px;
+	font-family: var(--font-body);
+	font-size: 14px;
+	letter-spacing: 0.06em;
+	color: var(--fg-muted);
+	text-shadow: var(--text-shadow);
+}
+.doc-info {
+	display: none;
+}
+
+/* 脚注：文末一条细线下面，字号小一号；↩ 是「回到正文里引用它的地方」 */
+.doc-body .footnotes {
+	margin-top: 4em;
+	padding-top: 1.2em;
+	border-top: 1px solid rgba(255, 255, 255, 0.18);
+	font-size: 0.88em;
+	color: var(--fg-muted);
+}
+.doc-body .footnotes ol {
+	padding-left: 1.4em;
+}
+.doc-body sup a,
+.doc-body .data-footnote-backref,
+.doc-body a[data-footnote-backref] {
+	text-decoration: none;
+	color: var(--fg-strong);
+	padding: 0 0.15em;
+}
+.doc-body a[data-footnote-backref]:hover,
+.doc-body sup a:hover {
+	color: #fff;
+	text-decoration: underline;
+}

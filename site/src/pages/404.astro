@@ -1,0 +1,53 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import { config, htmlStyle, t } from '../lib/site';
+---
+
+<html lang={config.site.lang} style={htmlStyle()}>
+	<head>
+		<BaseHead title={`页面不存在 · ${t(config.site.title)}`} description="这里没有东西。" />
+		<meta name="robots" content="noindex" />
+	</head>
+	<body>
+		<main>
+			<p class="code" aria-hidden="true">404</p>
+			<h1>这里没有东西</h1>
+			<p class="sub">链接可能过期了，或者文章的地址变过。</p>
+			<a href="/">← 回主页</a>
+		</main>
+		<style>
+			main {
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				text-align: center;
+				padding: 24px;
+			}
+			.code {
+				margin: 0;
+				font-family: var(--font-serif);
+				font-size: clamp(5rem, 18vw, 9rem);
+				line-height: 0.9;
+				color: var(--accent);
+				opacity: 0.18;
+				user-select: none;
+			}
+			h1 {
+				margin: -0.3em 0 0;
+				font-family: var(--font-serif);
+				font-size: 1.6rem;
+				color: var(--fg-strong);
+			}
+			.sub {
+				margin: 0.8rem 0 2rem;
+				color: var(--fg-muted);
+			}
+			a {
+				text-decoration: none;
+				letter-spacing: 0.04em;
+			}
+		</style>
+	</body>
+</html>

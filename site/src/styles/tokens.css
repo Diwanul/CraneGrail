@@ -1,0 +1,110 @@
+/*
+ * 全站设计 token。站点固定暗色：封面是黑底，主页叠在压暗的封面图上，
+ * 文章页若跟随系统变成亮色，从主页点进去会刺眼。
+ *
+ * 尺寸类 token（banner 高度、block 宽高…）不在这里，由 site.json 的 layout 生成，
+ * 见 src/components/LayoutVars.astro。
+ */
+
+/* 脚本要读到解析后的像素值（getComputedStyle），这几个变量必须注册成 <length> */
+@property --u {
+	syntax: '<length>';
+	inherits: true;
+	initial-value: 1px;
+}
+@property --rail-x {
+	syntax: '<length>';
+	inherits: true;
+	initial-value: 0px;
+}
+@property --block-inset {
+	syntax: '<length>';
+	inherits: true;
+	initial-value: 0px;
+}
+@property --block-gap {
+	syntax: '<length>';
+	inherits: true;
+	initial-value: 0px;
+}
+@property --rail-w {
+	syntax: '<length>';
+	inherits: true;
+	initial-value: 2px;
+}
+@property --ox {
+	syntax: '<length>';
+	inherits: true;
+	initial-value: 0px;
+}
+
+/*
+ * 布局：和大多数网站一样，内容放在一条固定宽度（--col）的居中栏里，两边留白；尺寸都是普通像素。
+ * --u 恒为 1px（样式里大量写成 n * var(--u)，留着它方便以后整体调比例）。
+ */
+:root {
+	--u: 1px;
+	--col: min(1360px, 100vw);
+	/* 屏幕比设计稿更宽时，设计稿居中，两边多出来的空白 */
+	--ox: calc((100vw - var(--col)) / 2);
+	color-scheme: dark;
+
+	--bg: #0a0a0c;
+	--surface: rgba(18, 18, 22, 0.72);
+	--surface-strong: rgba(24, 24, 30, 0.92);
+	--border: rgba(255, 255, 255, 0.12);
+	--border-strong: rgba(255, 255, 255, 0.32);
+
+	--fg: #d8d8de;
+	--fg-strong: #f4f4f6;
+	--fg-muted: #8c8c96;
+
+	--accent: #f2f2f0; /* 白，选中态、图标、文字强调 */
+	--accent-dim: rgba(242, 242, 240, 0.38);
+	/* 对话框笔画：旧骨头的颜色，带一点灰黄 */
+	--bone: #ddd3bf;
+	--bone-shade: #a89c84;
+
+	--radius-sm: 6px;
+	--radius-md: 10px;
+
+	/*
+	 * 两种字体角色（见 scripts/build-fonts.mjs）：
+	 *   标题  中文模式：汉字 方正文沁永乐大典 M，字母数字 Trajan；英文模式：Trajan
+	 *   正文  中文模式：汉字和数字 永乐大典 R，字母 Perpetua；英文模式：Perpetua
+	 * 字体文件由内容目录提供，没有就回退到系统衬线体。
+	 */
+	--font-title: 'Site Title', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif;
+	--font-body: 'Site Body', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif;
+	--font-serif: var(--font-title);
+	/* 字号由 site.json 的 fonts 决定（写在 <html style> 上），这里只是兜底 */
+	--fs-title: 24px;
+	--fs-body: 16px;
+	--fs-cat: 20px;
+	/* 封面台词比一般正文大：它是画面的主角 */
+	--fs-line: 22px;
+	/* 文字与笔画统一的阴影：贴身一层深色描边 + 外面一层柔和的暗晕 */
+	--text-shadow: 0 1px 1px rgba(0, 0, 0, 0.75), 0 0 10px rgba(0, 0, 0, 0.85);
+	--ink-shadow: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.7)) drop-shadow(0 0 7px rgba(0, 0, 0, 0.75));
+	/* 框：冷白色。整个框一起描一圈深色细边（四个方向的 0 模糊阴影），再衬一层大的暗晕 */
+	--frame: #eceae6;
+	--frame-shadow: drop-shadow(0 0 0.6px rgba(0, 0, 0, 0.9)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6))
+		drop-shadow(0 0 calc(9 * var(--u)) rgba(0, 0, 0, 0.85));
+	--font-sans: var(--font-atkinson), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+		'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+	/* 代码：Consolas 优先（Windows 自带），其次各平台的等宽字体 */
+	--font-mono: Consolas, 'Cascadia Mono', 'SF Mono', SFMono-Regular, Menlo, 'DejaVu Sans Mono', monospace;
+}
+
+@media (max-width: 720px) {
+	:root {
+		--u: 1px;
+		--ox: 0px;
+	}
+}
+
+/* 英文模式：标题整段 Trajan，正文整段 Perpetua（汉字回退到中文字体） */
+:root:lang(en) {
+	--font-title: 'Site Trajan', 'Site Title', Georgia, serif;
+	--font-body: 'Site Perpetua', 'Site Body', Georgia, serif;
+}

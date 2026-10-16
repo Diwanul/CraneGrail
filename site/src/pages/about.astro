@@ -1,0 +1,60 @@
+---
+// About：主页上点头像进来。和文章一样放在站点外壳的阅读区里，但版式是专门设计的：
+//   卷首    大头像 + 两侧名字 + 一句简介（site.json 的 site.description）
+//   正文    内容目录 posts/about.md（frontmatter 只要 title；不进主页列表、搜索、RSS），没写就留空
+//   链接    site.json 的 links 和 email，排成一行带框的小卡片
+import { Image } from 'astro:assets';
+import { render } from 'astro:content';
+import HomePage from '../layouts/HomePage.astro';
+import { getAbout } from '../lib/posts';
+import { asset, config, t } from '../lib/site';
+import { tr, UI } from '../lib/ui';
+
+const about = await getAbout();
+const rendered = about ? await render(about) : null;
+const Content = rendered?.Content;
+const avatar = asset(config.avatar);
+const title = about?.data.title ?? t(UI.about);
+---
+
+<HomePage open={{ slug: 'about', title, description: about?.data.description }}>
+	<section class="reader-doc about" data-slug="about" data-title={title}>
+		<div class="doc-info" hidden><span class="info-title">{title}</span></div>
+		<header class="about-head">
+			<div class="about-av">
+				{avatar ? <Image src={avatar} alt="" width={320} height={320} /> : <span class="about-av-blank" />}
+			</div>
+			<p class="about-names">
+				<span {...tr(config.site.author)}>{t(config.site.author)}</span>
+				<span class="about-dot" aria-hidden="true">·</span>
+				<span {...tr(config.site.title)}>{t(config.site.title)}</span>
+			</p>
+			{(config.site.description.zh || config.site.description.en) && <p class="about-tag" {...tr(config.site.description)}>{t(config.site.description)}</p>}
+		</header>
+
+		<div class="prose doc-body about-body">
+			{Content ? <Content /> : <p class="about-empty" {...tr(UI.aboutEmpty)}>{t(UI.aboutEmpty)}</p>}
+		</div>
+
+		{
+			(config.links.length > 0 || config.email) && (
+				<nav class="about-links" aria-label="Links">
+					{config.links.map((l) => (
+						<a class="about-link" href={l.href} target="_blank" rel="noopener">
+							<span class="about-link-label" {...tr(l.label)}>
+								{t(l.label)}
+							</span>
+							<span class="about-link-href">{l.href.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+						</a>
+					))}
+					{config.email && (
+						<a class="about-link" href="#" data-email>
+							<span class="about-link-label">Email</span>
+							<span class="about-link-href" data-email-text />
+						</a>
+					)}
+				</nav>
+			)
+		}
+	</section>
+</HomePage>

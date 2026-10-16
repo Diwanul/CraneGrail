@@ -1,0 +1,220 @@
+---
+// 整个站点的外壳：背景、头像、封面、主页、章节行、阅读区。
+// 主页（/）直接用它；文章页（/<slug>/）和 About 也用它，只是把那篇文章预先放进阅读区（slot），
+// 并在 boot 里告诉脚本「一进来就是阅读模式」——刷新文章页看到的和从主页点进来的是同一个页面，
+// 不再有一套单独的文章页布局。
+import { getImage, Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import BaseHead from '../components/BaseHead.astro';
+import Block from '../components/Block.astro';
+import CatIcon from '../components/CatIcon.astro';
+import { getSortedPosts, postsInCategory } from '../lib/posts';
+import { asset, config, htmlStyle, lang, t } from '../lib/site';
+import { tr, trLabel, UI } from '../lib/ui';
+import '../styles/home.css';
+import '../styles/home-main.css';
+import '../styles/reader.css';
+
+interface Props {
+	/** 预先打开的文章（文章页、About 用） */
+	open?: { slug: string; title: string; description?: string; image?: ImageMetadata | null };
+}
+const { open } = Astro.props;
+
+const all = await getSortedPosts();
+const avatar = asset(config.avatar);
+
+// 封面背景：构建期转成 webp。第一张直接进 DOM，其余的 URL 交给脚本按需加载
+const slides = await Promise.all(
+	config.cover.slides.map(async (s) => {
+		const meta = asset(s.image)!;
+		// 照片转 webp；SVG 原样保留（矢量图转位图只会变大变糊）
+		const img =
+			meta.format === 'svg'
+				? { src: meta.src }
+				: await getImage({ src: meta, format: 'webp', width: 1920, quality: 78 });
+		return { src: img.src, body: s.body, source: s.source };
+	}),
+);
+
+const categories = config.categories.map((c) => ({
+	...c,
+	iconMeta: asset(c.icon),
+	posts: postsInCategory(all, c.id),
+}));
+const searchCat = { ...config.searchCategory, iconMeta: asset(config.searchCategory.icon) };
+// 进主页默认停在「置顶」
+const startCat = Math.max(0, categories.findIndex((c) => c.id === 'pinned'));
+
+// 搜索索引：标题 + 简介 + 分类名（两种语言都算），小站点直接内联进页面就够了
+const searchIndex = all.map((p) => {
+	const c = config.categories.find((x) => x.id === p.data.category)?.label;
+	return { slug: p.id, title: p.data.title, desc: p.data.description ?? '', cat: c ? `${c.zh} ${c.en}` : '' };
+});
+
+// 版权行：没配置就是「© 年份 作者」
+const year = new Date().getFullYear();
+const copyright = config.copyright ?? { zh: `© ${year} ${config.site.author.zh}`, en: `© ${year} ${config.site.author.en}` };
+
+const boot = {
+	slides,
+	interval: config.cover.interval,
+	coverSpeed: config.cover.speed,
+	dim: config.cover.dim,
+	speed: config.motion.speed,
+	lang: config.defaultLang,
+	startCat,
+	search: searchIndex,
+	ui: { noResult: UI.noResult },
+	email: config.email,
+	open: open?.slug ?? null,
+};
+---
+
+<html lang={config.site.lang} style={htmlStyle()} data-stage="boot" class={open ? 'reading' : undefined}>
+	<head>
+		<BaseHead title={open ? `${open.title} · ${t(config.site.title)}` : t(config.site.title)} description={open?.description} image={open?.image ?? avatar} />
+	</head>
+	<body>
+		<!-- ========== 背景：封面图（主页状态下压暗保留） ========== -->
+		<div class="backdrop" aria-hidden="true">
+			<div class="bg bg-a"></div>
+			<div class="bg bg-b"></div>
+			<div class="veil"></div>
+		</div>
+
+		<!-- ========== 头像与两侧名字：封面和主页共用同一个元素 ========== -->
+		<div class="ident" id="ident">
+			<span class="name name-l" {...tr(config.site.author)}>{t(config.site.author)}</span>
+			<button class="avatar-btn" id="avatar-btn" type="button" aria-label={t(UI.about)} {...trLabel(UI.about)} tabindex="-1">
+				{
+					avatar ? (
+						<Image class="avatar" src={avatar} alt="" width={256} height={256} />
+					) : (
+						<span class="avatar avatar-blank" />
+					)
+				}
+			</button>
+			<span class="name name-r" {...tr(config.site.title)}>{t(config.site.title)}</span>
+		</div>
+
+		<!-- ========== 封面：对话框 ========== -->
+		<section class="cover" id="cover" aria-label={t(UI.cover)} {...trLabel(UI.cover)} aria-live="polite">
+			<!-- 鼠标移到左右边缘：鼠标处晕开一团暗影 + 书写出来的箭头，点击切换幻灯片 -->
+			<div class="edge" id="edge" aria-hidden="true">
+				<div class="edge-shadow"></div>
+				<svg class="edge-arrow" id="edge-arrow" viewBox="0 0 56 56"></svg>
+			</div>
+			<!-- 对话框：笔画由 src/scripts/ink.ts 按对话框实际尺寸生成 -->
+			<div class="dialog" id="dialog">
+				<svg class="frame" id="frame" aria-hidden="true"></svg>
+				<p class="line" id="line"></p>
+				<p class="source" id="source"></p>
+				<button class="next" id="next" type="button" aria-label={t(UI.enterHome)} {...trLabel(UI.enterHome)}>
+					<svg id="next-svg" viewBox="0 0 300 44" aria-hidden="true"></svg>
+				</button>
+			</div>
+		</section>
+
+		<!-- ========== 主页 ========== -->
+		<div class="home" id="home" inert>
+			<!-- 标示线：盖住整个主页的 svg，从当前章节的左框向上拉到文章区顶部（见 scripts/home/list.ts） -->
+			<svg class="rail" id="rail" aria-hidden="true"></svg>
+			<header class="banner" id="banner">
+				<svg class="banner-line" viewBox="0 0 1000 2" preserveAspectRatio="none" aria-hidden="true">
+					<path class="bl bl-l" d="M 500 1 L 0 1" pathLength="1" />
+					<path class="bl bl-r" d="M 500 1 L 1000 1" pathLength="1" />
+				</svg>
+				<!-- 搜索：点放大镜，右侧延伸出一条线，线上方就是输入框 -->
+				<form class="search side" id="search" role="search" autocomplete="off">
+					<button class="search-btn" id="search-btn" type="button" aria-label={t(UI.search)} {...trLabel(UI.search)}>
+						<svg viewBox="0 0 24 24" aria-hidden="true">
+							<circle cx="10.5" cy="10.5" r="6.5" />
+							<path d="M 15.5 15.5 L 21 21" />
+						</svg>
+					</button>
+					<span class="search-field" id="search-field">
+						<input
+							id="search-input"
+							type="search"
+							tabindex="-1"
+							enterkeyhint="search"
+							aria-label={t(UI.search)}
+							{...trLabel(UI.search)}
+						/>
+						<svg class="search-line" viewBox="0 0 100 2" preserveAspectRatio="none" aria-hidden="true">
+							<path id="search-line" d="M 0 1 L 100 1" pathLength="1" />
+						</svg>
+					</span>
+				</form>
+				<button class="lang side" id="lang-btn" type="button" aria-label={t(UI.toggleLang)} {...trLabel(UI.toggleLang)}>
+					<svg viewBox="0 0 24 24" aria-hidden="true">
+						<circle cx="12" cy="12" r="8.5" />
+						<path d="M 3.5 12 H 20.5 M 12 3.5 C 8.7 6.8 8.7 17.2 12 20.5 M 12 3.5 C 15.3 6.8 15.3 17.2 12 20.5" />
+					</svg>
+					<span class="lang-code" id="lang-code">{lang === 'zh' ? '中' : 'EN'}</span>
+				</button>
+			</header>
+
+			<main class="stage" id="stage">
+				<ol class="list" data-cat="search" hidden aria-label={t(searchCat.label)} {...trLabel(searchCat.label)}></ol>
+				{
+					categories.map((c, ci) => (
+						<ol class="list" data-cat={c.id} hidden={ci !== startCat} aria-label={t(c.label)} {...trLabel(c.label)}>
+							{c.posts.length === 0 && (
+								<li class="empty" {...tr(UI.empty)}>
+									{t(UI.empty)}
+								</li>
+							)}
+							{c.posts.map((p) => (
+								<Block post={p} pinned={c.id === 'latest' && config.pinned.includes(p.id)} />
+							))}
+						</ol>
+					))
+				}
+				<!-- 阅读模式：打开文章时就地换进来（scripts/home.ts 的 openArticle），和文章列同一个位置 -->
+				<div class="reader" id="reader" aria-live="polite"><slot /></div>
+			</main>
+			<nav class="toc" id="toc" aria-label="目录"></nav>
+
+			<nav class="cats" id="cats" aria-label={t(UI.categories)} {...trLabel(UI.categories)}>
+				<div class="cats-track" id="cats-track">
+					<!-- 「搜索」：搜索之后才从左侧滑进来，平时收起不占位 -->
+					<button class="cat cat-search" type="button" data-cat="search" tabindex="-1" hidden>
+							<svg class="cat-frame" aria-hidden="true" />
+						<CatIcon id="search" icon={searchCat.icon} meta={searchCat.iconMeta} />
+						<span class="cat-text">
+							<span class="cat-label" {...tr(searchCat.label)}>{t(searchCat.label)}</span>
+							<span class="cat-count"></span>
+						</span>
+					</button>
+					{
+						categories.map((c) => (
+							<button class="cat" type="button" data-cat={c.id} tabindex="-1">
+								<svg class="cat-frame" aria-hidden="true" />
+								<CatIcon id={c.id} icon={c.icon} meta={c.iconMeta} />
+								<span class="cat-text">
+									<span class="cat-label" {...tr(c.label)}>
+										{t(c.label)}
+									</span>
+									<span class="cat-count">{c.posts.length}</span>
+								</span>
+							</button>
+						))
+					}
+				</div>
+				<!-- 阅读时：当前章节卡片右边写文章标题、发布时间（内容来自文章的 .doc-info） -->
+				<div class="read-info" id="read-info" aria-live="polite"></div>
+			</nav>
+
+			<footer class="foot">
+				<p class="hint" id="hint" aria-hidden="true" {...tr(UI.hint)}>{t(UI.hint)}</p>
+				{copyright && (copyright.zh || copyright.en) && <p class="copy" {...tr(copyright)}>{t(copyright)}</p>}
+			</footer>
+		</div>
+
+		<!-- JSON 数据块不会被执行，CSP 不拦；< 转义防止文章标题里的 </script> 提前闭合 -->
+		<script is:inline type="application/json" id="boot" set:html={JSON.stringify(boot).replace(/</g, '\u003c')} />
+		<script src="../scripts/home.ts"></script>
+	</body>
+</html>

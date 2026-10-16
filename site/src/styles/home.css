@@ -1,0 +1,277 @@
+/*
+ * 主页 + 封面。所有动画由 src/scripts/home.ts 用 Web Animations API 编排，
+ * 这里只负责静态布局和「终态」样式。时长一律乘 --speed 的倒数。
+ */
+
+/* 遮罩半径要能被动画插值，必须注册成 <percentage>，否则会直接跳变 */
+@property --r {
+	syntax: '<percentage>';
+	inherits: false;
+	initial-value: 0%;
+}
+
+html,
+body {
+	height: 100%;
+	overflow: hidden;
+}
+
+/* ---------- 背景 ---------- */
+
+.backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	background: #000;
+}
+.bg {
+	position: absolute;
+	inset: 0;
+	background-size: cover;
+	background-position: center;
+	opacity: 0;
+}
+
+/*
+ * 「从头像处开始淡入 / 淡出」：以头像为圆心的径向遮罩，半径 --r 由脚本从 -18% 推到 100%。
+ * m-in：圆内可见、圆外透明 → 圆扩大 = 从头像向外显现。
+ * m-out：圆内透明、圆外可见 → 圆扩大 = 从头像向外消失（下面是黑底，所以是变黑）。
+ */
+.m-in {
+	-webkit-mask-image: radial-gradient(circle at 50% var(--ident-y, calc(36 * var(--u))), #000 var(--r), transparent calc(var(--r) + 18%));
+	mask-image: radial-gradient(circle at 50% var(--ident-y, calc(36 * var(--u))), #000 var(--r), transparent calc(var(--r) + 18%));
+}
+.m-out {
+	-webkit-mask-image: radial-gradient(circle at 50% var(--ident-y, calc(36 * var(--u))), transparent var(--r), #000 calc(var(--r) + 18%));
+	mask-image: radial-gradient(circle at 50% var(--ident-y, calc(36 * var(--u))), transparent var(--r), #000 calc(var(--r) + 18%));
+}
+.veil {
+	/* 主页状态下把封面图压暗成背景。背景两层在交叉淡化时用 z-index 0..2 排序，压暗层必须在它们上面 */
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	background: #000;
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* ---------- 头像与名字（封面与主页共用） ---------- */
+
+.ident {
+	position: fixed;
+	left: 50%;
+	top: calc(var(--banner-h) / 2);
+	z-index: 30;
+	transform: translate(-50%, -50%);
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: center;
+	gap: calc(12 * var(--u));
+	width: min(80vw, calc(760 * var(--u)));
+	pointer-events: none;
+}
+.avatar-btn {
+	pointer-events: auto;
+	padding: 0;
+	border: 0;
+	background: none;
+	cursor: default;
+	border-radius: 50%;
+	width: var(--avatar);
+	height: var(--avatar);
+}
+html[data-stage='home'] .avatar-btn {
+	cursor: pointer;
+}
+.avatar {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	object-fit: cover;
+	box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 calc(10 * var(--u)) calc(40 * var(--u)) rgba(0, 0, 0, 0.6);
+}
+.avatar-blank {
+	background: radial-gradient(circle at 50% var(--ident-y, calc(36 * var(--u))), #3a3a44 30%, #1c1c22 31%);
+}
+.name {
+	font-family: var(--font-title);
+	font-size: var(--fs-title);
+	line-height: 1.1;
+	letter-spacing: 0.08em;
+	color: var(--fg-strong);
+	text-shadow: var(--text-shadow);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	/* overflow: hidden 会切掉 g、y 这类下伸部分（行高只有 1.1）：上下各让出一点再用负边距抵消，布局不变 */
+	padding: 0.1em 0 0.25em;
+	margin: -0.1em 0 -0.25em;
+}
+.name-l {
+	text-align: right;
+}
+.name-r {
+	text-align: left;
+}
+
+/* ---------- 封面对话框（贴底） ---------- */
+
+.cover {
+	position: fixed;
+	inset: 0;
+	z-index: 20;
+	pointer-events: none;
+}
+html[data-stage='cover'] .cover {
+	pointer-events: auto;
+}
+.dialog {
+	position: absolute;
+	left: 50%;
+	bottom: 4vh;
+	transform: translateX(-50%);
+	width: min(90vw, calc(980 * var(--u)));
+	min-height: calc(150 * var(--u));
+	padding: calc(48 * var(--u)) calc(80 * var(--u)) calc(60 * var(--u));
+	cursor: pointer;
+}
+.frame {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+	pointer-events: none;
+}
+/*
+ * 笔画是填充多边形（见 ink.ts），不是 stroke：这样才能两头尖、中间粗。
+ * 所有框都是白色。阴影不挂在每一笔上，而是挂在整张 svg 上：整个框作为一个整体
+ * 描一圈深色边、后面衬一层暗晕，笔与笔交叠处就融成一体，不会一道道分明。
+ */
+.ink,
+.ink-arrow {
+	fill: var(--frame);
+}
+.frame,
+.next svg,
+.edge-arrow,
+.rail,
+.block-frame,
+.cat-frame {
+	filter: var(--frame-shadow);
+}
+#line {
+	position: relative;
+	margin: 0;
+	font-family: var(--font-body);
+	font-size: var(--fs-line);
+	line-height: 1.9;
+	letter-spacing: 0.05em;
+	text-align: center;
+	color: var(--fg-strong);
+	text-shadow: var(--text-shadow);
+	min-height: 1.9em;
+}
+#line .ch {
+	opacity: 0;
+}
+.next {
+	position: absolute;
+	left: 50%;
+	/* 和台词留出距离：标识滑入时不会压到最后一行字 */
+	/* 尖饰 svg 里 y = 6 那条线压在对话框底边（离底 18px）上：44 − 6 − 18 = 20 */
+	bottom: calc(-20 * var(--u));
+	transform: translateX(-50%);
+	width: calc(300 * var(--u));
+	height: calc(44 * var(--u));
+	padding: 0;
+	border: 0;
+	background: none;
+	cursor: pointer;
+	opacity: 0;
+}
+.next svg {
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+.dialog:hover .next .ink {
+	fill: #fff;
+}
+
+/* ---------- 封面左右边缘：切换幻灯片 ---------- */
+
+.edge {
+	position: fixed;
+	inset: 0;
+	z-index: 25;
+	pointer-events: none;
+}
+.edge-shadow {
+	/*
+	 * 以鼠标为圆心的一团半透明黑。浓度按半球的高度走：alpha(r) = A·√(1 − r²)，
+	 * 中间一大片几乎一样浓，越靠边掉得越快（导数越来越大），像一颗球的轮廓；
+	 * 外侧 45% 再乘一个 smoothstep，边缘软软地化开，没有轮廓线。
+	 * 位置由脚本写进 --ex / --ey。
+	 */
+	position: absolute;
+	/*
+	 * 定位只用 left / top，不用 transform：脚本动的是独立的 scale 属性，
+	 * 它绕 transform-origin（盒子中心 = 鼠标处）缩放，所以暗影是从鼠标下晕开的。
+	 * 要是这里再写 translate(-50%)，缩放中心就会偏到鼠标右下，看着像从上方落下来。
+	 */
+	left: calc(var(--ex, 0px) - calc(110 * var(--u)));
+	top: calc(var(--ey, 0px) - calc(110 * var(--u)));
+	width: calc(220 * var(--u));
+	height: calc(220 * var(--u));
+	border-radius: 50%;
+	background: radial-gradient(circle closest-side, rgba(0, 0, 0, 0.460) 0%, rgba(0, 0, 0, 0.451) 20%, rgba(0, 0, 0, 0.431) 35%, rgba(0, 0, 0, 0.411) 45%, rgba(0, 0, 0, 0.384) 55%, rgba(0, 0, 0, 0.337) 62%, rgba(0, 0, 0, 0.269) 68%, rgba(0, 0, 0, 0.191) 74%, rgba(0, 0, 0, 0.127) 79%, rgba(0, 0, 0, 0.072) 84%, rgba(0, 0, 0, 0.038) 88%, rgba(0, 0, 0, 0.015) 92%, rgba(0, 0, 0, 0.005) 95%, rgba(0, 0, 0, 0.001) 98%, rgba(0, 0, 0, 0) 100%);
+	opacity: 0;
+}
+.edge-arrow {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: calc(56 * var(--u));
+	height: calc(56 * var(--u));
+	transform: translate(calc(var(--ex, 0px) - 50%), calc(var(--ey, 0px) - 50%));
+	overflow: visible;
+}
+html[data-stage='cover'] .cover.edge-on {
+	cursor: pointer;
+}
+
+/* 封面的出处：台词全部出现后换行、右对齐 */
+.source {
+	position: relative;
+	margin: calc(6 * var(--u)) 0 0;
+	font-family: var(--font-body);
+	font-size: var(--fs-line);
+	line-height: 1.8;
+	letter-spacing: 0.04em;
+	text-align: right;
+	color: var(--fg);
+	text-shadow: var(--text-shadow);
+}
+.source[hidden] {
+	display: none;
+}
+.source .ch {
+	opacity: 0;
+}
+
+/* 主页的样式见 home-main.css */
+
+@media (max-width: 720px) {
+	.dialog {
+		padding: calc(40 * var(--u)) calc(30 * var(--u)) calc(24 * var(--u));
+	}
+}
+
+/* ---------- 无 JS 兜底：直接显示主页 ---------- */
+
+html[data-stage='boot'] .cover,
+html[data-stage='boot'] .ident {
+	visibility: hidden;
+}

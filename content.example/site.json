@@ -1,0 +1,53 @@
+{
+  "_comment": "站点的全部可定制项都在这里。可选项不填就当作没有；必需项不填会用默认值。完整字段说明见仓库根 CONTENT.md。",
+  "site": {
+    "author": "Author",
+    "title": "Blog",
+    "description": "示例站点：笔记与随想。",
+    "lang": "zh-CN",
+    "url": "https://example.com"
+  },
+  "avatar": "assets/avatar.svg",
+  "categories": [
+    { "id": "pinned", "label": { "zh": "置顶", "en": "Pinned" } },
+    { "id": "latest", "label": { "zh": "最新", "en": "Latest" } },
+    { "id": "game", "label": { "zh": "游戏", "en": "Games" } },
+    { "id": "thoughts", "label": { "zh": "随感", "en": "Ideas" } },
+    { "id": "life", "label": { "zh": "生活", "en": "Life" } },
+    { "id": "books", "label": { "zh": "书籍", "en": "Books" } },
+    { "id": "film", "label": { "zh": "电影", "en": "Film" } },
+    { "id": "other", "label": { "zh": "其他", "en": "Other" } }
+  ],
+  "pinned": ["markdown-test", "hetang-yuese", "reader-demo"],
+  "links": [
+    { "label": "GitHub", "href": "https://github.com/example" }
+  ],
+  "email": { "user": "hello", "domain": "example.com" },
+  "fonts": {
+    "titleZh": null,
+    "titleEn": null,
+    "bodyZh": null,
+    "bodyEn": null,
+    "titleSize": 24,
+    "bodySize": 16,
+    "lineSize": 25,
+    "categorySize": 20
+  },
+  "cover": {
+    "slides": [
+      { "image": "assets/cover-1.svg", "text": "Stay curious, keep building." },
+      { "image": "assets/cover-2.svg", "text": ["“Not all those who wander are lost.”", "— J.R.R. Tolkien"] },
+      { "image": "assets/cover-3.svg", "text": ["“What we know is a drop, what we don’t know is an ocean.”", "— Isaac Newton"] }
+    ],
+    "interval": 7000,
+    "dim": 0.35,
+    "speed": 2
+  },
+  "motion": {
+    "speed": 1
+  },
+  "preview": {
+    "port": 4321,
+    "open": true
+  }
+}

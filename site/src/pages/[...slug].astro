@@ -1,0 +1,23 @@
+---
+// 文章直接挂在根路径下：/<slug>/。页面就是站点外壳，文章预先放进阅读区（见 layouts/HomePage.astro）
+import { render } from 'astro:content';
+import ArticleBody from '../components/ArticleBody.astro';
+import HomePage from '../layouts/HomePage.astro';
+import { getSortedPosts, type Post } from '../lib/posts';
+
+export async function getStaticPaths() {
+	const posts = await getSortedPosts();
+	return posts.map((post) => ({ params: { slug: post.id }, props: post }));
+}
+
+type Props = Post;
+const post = Astro.props;
+const { Content } = await render(post);
+const d = post.data;
+---
+
+<HomePage open={{ slug: post.id, title: d.title, description: d.description, image: d.heroImage }}>
+	<ArticleBody slug={post.id} title={d.title} description={d.description} pubDate={d.pubDate} updatedDate={d.updatedDate} heroImage={d.heroImage} category={d.category}>
+		<Content />
+	</ArticleBody>
+</HomePage>

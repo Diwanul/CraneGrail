@@ -1,0 +1,37 @@
+---
+// 主页文章块。搜索结果也是从「最新」里克隆这些块再重排，所以缩略图都是构建期优化过的。
+import { Image } from 'astro:assets';
+import FormattedDate from './FormattedDate.astro';
+import type { Post } from '../lib/posts';
+import { config } from '../lib/site';
+import { tr, UI } from '../lib/ui';
+
+interface Props {
+	post: Post;
+	pinned?: boolean;
+}
+const { post, pinned = false } = Astro.props;
+const p = post.data;
+---
+
+<li class="block" data-slug={post.id}>
+	<!-- 框的右上、右下两个角由脚本按卡片尺寸画出来（左边那条就是标示线） -->
+	<svg class="block-frame" aria-hidden="true"></svg>
+	<a href={`/${post.id}/`} class="block-link" tabindex="-1">
+		{
+			config.layout.blockImageRatio > 0 && (
+				<span class="thumb">{p.heroImage && <Image src={p.heroImage} alt="" width={480} loading="lazy" />}</span>
+			)
+		}
+		<span class="text">
+			<span class="title">
+				{pinned && <span class="pin" {...tr(UI.pinned)}>{UI.pinned[config.defaultLang]}</span>}
+				{p.title}
+			</span>
+			{p.description && <span class="desc">{p.description}</span>}
+			<span class="date">
+				<FormattedDate date={p.pubDate} />
+			</span>
+		</span>
+	</a>
+</li>

@@ -1,0 +1,25 @@
+# 行尾规范化。不写这个文件的话，行为取决于每台机器的 core.autocrlf，
+# 跨平台协作时会产生大片虚假 diff。
+
+# 默认：git 里一律存 LF，检出时按平台习惯转换
+* text=auto
+
+# ---- 必须保持 LF 的文件 ----
+# shell 脚本带 CRLF 会在 Linux/macOS 上报 "bad interpreter: /bin/bash^M"
+*.sh        text eol=lf
+
+# ---- 二进制，不要碰 ----
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.webp      binary
+*.gif       binary
+*.ico       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.otf       binary
+*.pdf       binary
+
+# ---- diff 时折叠，减少噪声 ----
+package-lock.json  -diff linguist-generated

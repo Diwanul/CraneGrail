@@ -1,0 +1,33 @@
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+.astro/
+
+# 你的内容：文章、配置、图片。仓库里只有 content.example/
+content/
+
+# 由 site/scripts/load-content.mjs 从内容目录生成
+site/src/site.generated.ts
+site/src/content-assets/
+site/public/site/
+site/src/styles/fonts.generated.css
+site/public/site-fonts/
+
+# 环境变量 / 部署令牌（令牌运行时从 az 现取，不要落盘）
+.env
+.env.*
+!.env.example
+
+# 日志
+*-debug.log*
+npm-debug.log*
+
+# 编辑器 / 系统
+.DS_Store
+.idea/
+Thumbs.db
+
+# Static Web Apps CLI 缓存
+.swa/

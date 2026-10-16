@@ -1,0 +1,16 @@
+---
+// 构建期按默认语言格式化；切换语言时 scripts/i18n.ts 会按 data-date 重新格式化
+import { config } from '../lib/site';
+
+interface Props {
+	date: Date;
+}
+
+const { date } = Astro.props;
+const text =
+	config.defaultLang === 'en'
+		? date.toLocaleDateString('en', { year: 'numeric', month: 'short', day: 'numeric' })
+		: date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+
+<time datetime={date.toISOString()} data-date>{text}</time>
