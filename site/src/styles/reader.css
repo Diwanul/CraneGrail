@@ -29,9 +29,16 @@ html.reading .list {
 .reader-doc {
 	position: relative;
 	/* 正文栏：线右边 inset 起，宽度不超过 720 */
-	margin-left: calc(var(--rail-x) + var(--block-inset) + 12px);
+	margin-left: calc(var(--rail-x) + var(--block-inset) + 40px);
 	width: min(720px, calc(100vw - 2 * var(--rail-x) - 2 * var(--block-inset)));
 	padding: 28px 0 60px;
+}
+/* About：没有目录，整页在屏幕正中，所有内容居中 */
+.reader-doc.about {
+	margin-left: auto;
+	margin-right: auto;
+	width: min(820px, calc(100vw - 2 * var(--rail-x) - 2 * var(--block-inset)));
+	text-align: center;
 }
 
 .doc-hero {
@@ -213,7 +220,8 @@ body.article-page .rail {
 }
 
 @media (max-width: 720px) {
-	.reader-doc {
+	.reader-doc,
+	.reader-doc.about {
 		margin-left: calc(var(--rail-x) + 14px);
 		width: calc(100vw - var(--rail-x) - 28px);
 	}
@@ -225,62 +233,69 @@ body.article-page .rail {
 /* ---------- About 卷首（layout: about） ---------- */
 
 /*
- * 三列：左名字 · 头像 · 右名字。名字和头像中心对齐；称号叠在名字上方（竖着一串），座右铭在名字下方，
- * 图标链接一排在头像下方。两侧的子元素直接排进外层网格（display: contents），这样上下对得齐。
+ * 三列：左名字 · 头像 · 右名字，两侧严格等宽，头像在正中，名字和头像中心对齐。
+ * 每一侧是三行：上下两行强制等高（minmax(0, 1fr)），名字永远在头像的水平中线上；
+ * 称号贴着名字上沿往上叠（竖着一串，放不下就溢出到上方），座右铭贴着下沿，离名字很近。
+ * 称号和座右铭都在文档流里，所以这一侧的宽度按三者里最宽的算，不会压到头像。
+ * 上方给称号留的空按称号最多的那一侧算（--ah-tn）。
  */
 .about-head {
 	position: relative;
 	display: grid;
-	grid-template-columns: 1fr auto 1fr;
-	grid-template-rows: auto auto auto;
-	grid-template-areas:
-		'lt . rt'
-		'ln av rn'
-		'lm lk rm';
+	/* minmax(0, 1fr)：两侧名字长短不一时也严格等宽 */
+	grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 	column-gap: 34px;
 	align-items: center;
-	padding: 18px 0 44px;
+	/* 下方留出图标那一排（34px + 18px 间距）和底饰 */
+	padding: calc(18px + var(--ah-tn, 0) * 1.6em) 0 96px;
 	margin-bottom: 56px;
 }
-.ah-side,
-.ah-center {
-	display: contents;
+.ah-side {
+	grid-row: 1;
+	align-self: stretch;
+	display: grid;
+	grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+	justify-items: center;
+	text-align: center;
 }
-.ah-l .ah-titles { grid-area: lt; }
-.ah-r .ah-titles { grid-area: rt; }
-.ah-l .ah-name { grid-area: ln; }
-.ah-r .ah-name { grid-area: rn; }
-.ah-l .ah-motto { grid-area: lm; }
-.ah-r .ah-motto { grid-area: rm; }
-.ah-av { grid-area: av; }
-.ah-links { grid-area: lk; }
-.ah-l > * {
+.ah-l {
+	grid-column: 1;
 	justify-self: end;
-	text-align: right;
 }
-.ah-r > * {
+.ah-r {
+	grid-column: 3;
 	justify-self: start;
-	text-align: left;
+}
+.ah-center {
+	grid-column: 2;
+	grid-row: 1;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 }
 .ah-titles {
+	grid-row: 1;
 	align-self: end;
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
-	margin: 0 0 10px;
+	align-items: center;
+	gap: 2px;
+	margin: 0 0 6px;
 	padding: 0;
 	list-style: none;
 }
 .ah-title {
 	margin: 0;
 	font-family: var(--font-title);
-	font-size: calc(var(--fs-title) * 0.62);
+	font-size: calc(var(--fs-title) * 0.7);
 	letter-spacing: 0.14em;
 	color: var(--fg-muted);
 	text-shadow: var(--text-shadow);
 }
 /* .ah-name 和 .ah-av 也用在飞行中的克隆上（挂在 body 下），所以样式不能依赖外层 */
 .ah-name {
+	grid-row: 2;
 	margin: 0;
 	font-family: var(--font-title);
 	font-size: calc(var(--fs-title) * 1.7);
@@ -290,12 +305,16 @@ body.article-page .rail {
 	text-shadow: var(--text-shadow);
 	white-space: nowrap;
 }
+.ah-title {
+	white-space: nowrap;
+}
 .ah-motto {
+	grid-row: 3;
 	align-self: start;
 	max-width: 15em;
-	margin: 12px 0 0;
+	margin: 4px 0 0;
 	font-family: var(--font-body);
-	font-size: var(--fs-body);
+	font-size: calc(var(--fs-body) * 1.25);
 	line-height: 1.7;
 	color: var(--fg);
 	text-shadow: var(--text-shadow);
@@ -327,7 +346,8 @@ body.article-page .rail {
 	pointer-events: none;
 }
 .ah-links {
-	align-self: start;
+	position: absolute;
+	top: 100%;
 	display: flex;
 	justify-content: center;
 	gap: 14px;
@@ -360,8 +380,21 @@ svg.link-icon path {
 	stroke-linejoin: round;
 }
 .about-body .about-empty {
-	text-align: center;
 	color: var(--fg-muted);
+}
+/* 居中排版里，列表和引用的块本身也居中、里面的字照常左对齐会很怪：列表去掉缩进和圆点 */
+.about-body :is(ul, ol) {
+	list-style: none;
+	padding-left: 0;
+}
+.about-body blockquote {
+	padding: 0.4em 0;
+}
+.about-body pre,
+.about-body table {
+	text-align: left;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 /* ---------- 折叠块（:::fold[标题] … :::） ---------- */

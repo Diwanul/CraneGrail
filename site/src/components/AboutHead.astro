@@ -15,9 +15,11 @@ const sides: { cls: string; name: Loc; v: AboutSide }[] = [
 	{ cls: 'ah-r', name: config.site.title, v: config.about.blog },
 ];
 const hasText = (l: Loc) => !!(l.zh || l.en);
+// 上方给称号留的行数（两侧取多的那一侧）
+const tn = Math.max(...sides.map((s) => s.v.titles.length));
 ---
 
-<header class="about-head">
+<header class="about-head" style={`--ah-tn: ${tn}`}>
 	{
 		sides.map((s) => (
 			<div class={`ah-side ${s.cls}`}>

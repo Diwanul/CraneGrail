@@ -121,7 +121,9 @@ export class Reader {
 		svg.setAttribute('viewBox', `0 0 ${innerWidth} ${innerHeight}`);
 		this.toc.appendChild(svg);
 		// 只给读者看得见的标题挂目录（脚注区的「Footnotes」是给读屏用的 .sr-only，不挂；折起来的也不挂）
-		const heads = [...this.doc.querySelectorAll<HTMLElement>('.doc-body h1, .doc-body h2, .doc-body h3')].filter((h) => !h.classList.contains('sr-only') && !h.closest('details:not([open])'));
+		// About 版式整页居中，不挂目录
+		const plain = this.doc.classList.contains('about');
+		const heads = plain ? [] : [...this.doc.querySelectorAll<HTMLElement>('.doc-body h1, .doc-body h2, .doc-body h3')].filter((h) => !h.classList.contains('sr-only') && !h.closest('details:not([open])'));
 		const [top, bottom] = this.span();
 		this.span0 = [top, bottom];
 		const x = this.railX();
@@ -143,10 +145,13 @@ export class Reader {
 			new InkGroup(place(svg, marker(SIZE[level]), (q) => P(x + q.x, y + q.y))).draw(1);
 			return { el, level, item, lit: false };
 		});
-		this.view = document.createElement('div');
-		this.view.className = 'toc-view';
-		this.view.style.left = `${x}px`;
-		this.toc.appendChild(this.view);
+		this.view = null;
+		if (!plain) {
+			this.view = document.createElement('div');
+			this.view.className = 'toc-view';
+			this.view.style.left = `${x}px`;
+			this.toc.appendChild(this.view);
+		}
 		this.declutter();
 		this.buildDecos();
 		this.update(true);
