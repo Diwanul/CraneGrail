@@ -1,6 +1,8 @@
 ---
 title: '关于'
 pubDate: '2026-10-15'
+description: '这里是什么，以及怎么找到我。'
+layout: about
 ---
 
 ## 这里是什么

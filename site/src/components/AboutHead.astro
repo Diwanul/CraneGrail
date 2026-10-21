@@ -1,0 +1,20 @@
+---
+// layout: about 的卷首：大头像 + 两侧名字 + 一句简介（site.json 的 site.description）
+import { Image } from 'astro:assets';
+import { asset, config, t } from '../lib/site';
+import { tr } from '../lib/ui';
+
+const avatar = asset(config.avatar);
+---
+
+<header class="about-head">
+	<div class="about-av">
+		{avatar ? <Image src={avatar} alt="" width={320} height={320} /> : <span class="about-av-blank" />}
+	</div>
+	<p class="about-names">
+		<span {...tr(config.site.author)}>{t(config.site.author)}</span>
+		<span class="about-dot" aria-hidden="true">·</span>
+		<span {...tr(config.site.title)}>{t(config.site.title)}</span>
+	</p>
+	{(config.site.description.zh || config.site.description.en) && <p class="about-tag" {...tr(config.site.description)}>{t(config.site.description)}</p>}
+</header>

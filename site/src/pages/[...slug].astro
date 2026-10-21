@@ -1,23 +1,36 @@
 ---
 // 文章直接挂在根路径下：/<slug>/。页面就是站点外壳，文章预先放进阅读区（见 layouts/HomePage.astro）
+// About 也是普通文章（posts/about.md），只是主页头像多一个入口；没写这篇时 /about/ 给一页空的 About 版式
 import { render } from 'astro:content';
 import ArticleBody from '../components/ArticleBody.astro';
 import HomePage from '../layouts/HomePage.astro';
-import { getSortedPosts, type Post } from '../lib/posts';
+import { ABOUT, getSortedPosts, type Post } from '../lib/posts';
+import { t } from '../lib/site';
+import { tr, UI } from '../lib/ui';
 
 export async function getStaticPaths() {
 	const posts = await getSortedPosts();
-	return posts.map((post) => ({ params: { slug: post.id }, props: post }));
+	const paths: { params: { slug: string }; props: { post: Post | null } }[] = posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+	if (!posts.some((p) => p.id === ABOUT)) paths.push({ params: { slug: ABOUT }, props: { post: null } });
+	return paths;
 }
 
-type Props = Post;
-const post = Astro.props;
-const { Content } = await render(post);
-const d = post.data;
+const { post } = Astro.props as { post: Post | null };
+const Content = post ? (await render(post)).Content : null;
+const d = post?.data;
+const title = d?.title ?? t(UI.about);
 ---
 
-<HomePage open={{ slug: post.id, title: d.title, description: d.description, image: d.heroImage }}>
-	<ArticleBody slug={post.id} title={d.title} description={d.description} pubDate={d.pubDate} updatedDate={d.updatedDate} heroImage={d.heroImage} category={d.category}>
-		<Content />
-	</ArticleBody>
+<HomePage open={{ slug: post?.id ?? ABOUT, title, description: d?.description, image: d?.heroImage }}>
+	{
+		d && Content ? (
+			<ArticleBody slug={post!.id} title={d.title} description={d.description} pubDate={d.pubDate} updatedDate={d.updatedDate} heroImage={d.heroImage} category={d.category} layout={d.layout}>
+				<Content />
+			</ArticleBody>
+		) : (
+			<ArticleBody slug={ABOUT} title={title} layout="about" plain>
+				<p class="about-empty" {...tr(UI.aboutEmpty)}>{t(UI.aboutEmpty)}</p>
+			</ArticleBody>
+		)
+	}
 </HomePage>

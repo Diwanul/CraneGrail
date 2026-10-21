@@ -3,13 +3,16 @@ import config from '../site.generated';
 
 export type Post = CollectionEntry<'posts'>;
 
-/** About 是一篇特殊的文章：posts/about.md，只在 /about/ 显示，不进主页列表、RSS、搜索 */
+/** About 就是 slug 为 about 的那篇普通文章；它多一个入口（主页头像），版式可以用 layout: about */
 export const ABOUT = 'about';
 
-/** 全站唯一的文章读取入口：去掉草稿和 About，按发布日期从新到旧。 */
+/** 最后修改时间：有 updatedDate 用它，否则是发布日期。「新」按这个算 */
+export const lastModified = (p: Post) => p.data.updatedDate ?? p.data.pubDate;
+
+/** 全站唯一的文章读取入口：去掉草稿，按最后修改从新到旧。 */
 export async function getSortedPosts(): Promise<Post[]> {
-	const posts = await getCollection('posts', (p) => !p.data.draft && p.id !== ABOUT);
-	return posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+	const posts = await getCollection('posts', (p) => !p.data.draft);
+	return posts.sort((a, b) => lastModified(b).valueOf() - lastModified(a).valueOf());
 }
 
 const known = new Set(config.categories.map((c) => c.id));
@@ -28,10 +31,4 @@ export function postsInCategory(all: Post[], categoryId: string): Post[] {
 	}
 	if (categoryId === 'other') return all.filter((p) => !p.data.category || !known.has(p.data.category));
 	return all.filter((p) => p.data.category === categoryId);
-}
-
-/** About 那篇（没写或是草稿就返回 null） */
-export async function getAbout(): Promise<Post | null> {
-	const all = await getCollection('posts', (p) => p.id === ABOUT && !p.data.draft);
-	return all[0] ?? null;
 }

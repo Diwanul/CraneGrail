@@ -43,7 +43,8 @@ pubDate: '2026-08-14'                         # 必填，发布日期
 heroImage: './my-post.assets/cover.jpg'        # 可选，block 左侧的图，也是文章页顶部大图
 category: 'thoughts'                           # 可选，对应 site.json categories 的 id
                                               # 路径相对于这篇 md 自己，必须以 ./ 开头
-updatedDate: '2026-08-20'                     # 可选，更新日期
+updatedDate: '2026-08-20'                     # 可选，最后修改日期：改过文章就更新它，排序和列表日期按它
+layout: about                                  # 可选，about 版式（卷首 + 链接卡片）
 ---
 ```
 

@@ -2,7 +2,7 @@
 // 主页文章块。搜索结果也是从「最新」里克隆这些块再重排，所以缩略图都是构建期优化过的。
 import { Image } from 'astro:assets';
 import FormattedDate from './FormattedDate.astro';
-import type { Post } from '../lib/posts';
+import { lastModified, type Post } from '../lib/posts';
 import { config } from '../lib/site';
 import { tr, UI } from '../lib/ui';
 
@@ -30,7 +30,7 @@ const p = post.data;
 			</span>
 			{p.description && <span class="desc">{p.description}</span>}
 			<span class="date">
-				<FormattedDate date={p.pubDate} />
+				<FormattedDate date={lastModified(post)} />
 			</span>
 		</span>
 	</a>

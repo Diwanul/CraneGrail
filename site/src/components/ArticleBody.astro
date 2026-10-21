@@ -4,6 +4,8 @@
 // 所以这里不能依赖任何只在独立页面才有的东西。
 import { Image } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
+import AboutHead from './AboutHead.astro';
+import AboutLinks from './AboutLinks.astro';
 import FormattedDate from './FormattedDate.astro';
 import { config, t } from '../lib/site';
 import { tr, UI } from '../lib/ui';
@@ -17,14 +19,17 @@ interface Props {
 	heroImage?: ImageMetadata;
 	category?: string;
 	plain?: boolean;
+	/** 版式：about 多一个卷首和底部链接卡片（frontmatter 的 layout） */
+	layout?: 'article' | 'about';
 }
-const { slug, title, description, pubDate, updatedDate, heroImage, category, plain = false } = Astro.props;
+const { slug, title, description, pubDate, updatedDate, heroImage, category, plain = false, layout = 'article' } = Astro.props;
+const about = layout === 'about';
 // 文章只有一个普通分类：写了且在分类表里的就是它，否则算「其他」。置顶、最新、搜索是特殊分类，不算在内
 const SPECIAL = new Set(['pinned', 'latest', 'search', 'other']);
 const home = category && !SPECIAL.has(category) && config.categories.some((c) => c.id === category) ? category : 'other';
 ---
 
-<section class="reader-doc" data-slug={slug} data-title={title} data-cat={home}>
+<section class:list={['reader-doc', { about }]} data-slug={slug} data-title={title} data-cat={home}>
 	{/* 正文前不放标题和日期：它们写在章节卡片右边（脚本把 .doc-info 挪过去）。要标题就在 markdown 里写 # */}
 	<div class="doc-info" hidden>
 		<span class="info-title">{title}</span>
@@ -41,6 +46,7 @@ const home = category && !SPECIAL.has(category) && config.categories.some((c) =>
 			)
 		}
 	</div>
+	{about && <AboutHead />}
 	{
 		heroImage && (
 			<figure class="doc-hero">
@@ -48,7 +54,8 @@ const home = category && !SPECIAL.has(category) && config.categories.some((c) =>
 			</figure>
 		)
 	}
-	<div class="prose doc-body">
+	<div class:list={['prose doc-body', { 'about-body': about }]}>
 		<slot />
 	</div>
+	{about && <AboutLinks />}
 </section>

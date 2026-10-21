@@ -1,0 +1,26 @@
+---
+// layout: about 的底部：site.json 的 links 和 email 排成一行带框的小卡片
+import { config, t } from '../lib/site';
+import { tr } from '../lib/ui';
+---
+
+{
+	(config.links.length > 0 || config.email) && (
+		<nav class="about-links" aria-label="Links">
+			{config.links.map((l) => (
+				<a class="about-link" href={l.href} target="_blank" rel="noopener">
+					<span class="about-link-label" {...tr(l.label)}>
+						{t(l.label)}
+					</span>
+					<span class="about-link-href">{l.href.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+				</a>
+			))}
+			{config.email && (
+				<a class="about-link" href="#" data-email>
+					<span class="about-link-label">Email</span>
+					<span class="about-link-href" data-email-text />
+				</a>
+			)}
+		</nav>
+	)
+}
