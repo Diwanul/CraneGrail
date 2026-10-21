@@ -293,7 +293,8 @@ async function openArticle(href: string, push = true) {
 	// 从特殊分类进来的：章节行换到文章所属的普通分类
 	const want = node.dataset.cat ? catIndex(node.dataset.cat) : -1;
 	readCat = want >= 0 ? want : S.catI;
-	await ringTo(S.catI, readCat);
+	// About 整页居中，不要标示线：和章节行换格同时收掉
+	await Promise.all([ringTo(S.catI, readCat), isAbout(node) && railShrink()]);
 	fillInfo(node);
 	readingSlug = node.dataset.slug ?? null;
 	document.title = `${node.dataset.title ?? ''} · ${document.title.split(' · ').pop()}`;
@@ -313,11 +314,15 @@ async function openArticle(href: string, push = true) {
 	(node.querySelector('h1') as HTMLElement | null)?.focus?.({ preventScroll: true });
 }
 
+/** 正在读的是 About 版式（没有标示线） */
+const aboutNow = () => !!reading && isAbout(readerEl.querySelector<HTMLElement>('.reader-doc'));
+
 async function closeArticle(pop = false) {
 	if (!reading || readBusy) return;
 	readBusy = true;
 	const doc = readerEl.querySelector<HTMLElement>('.reader-doc');
-	if (isAbout(doc) && readerEl.scrollTop < 40) await aboutOut(doc, ident, d);
+	const wasAbout = isAbout(doc);
+	if (wasAbout && readerEl.scrollTop < 40) await aboutOut(doc, ident, d);
 	await Promise.all([
 		run(readerEl, [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-18px)' }], d(300), { easing: EASE_IN }),
 		run(tocEl, [{ opacity: 1 }, { opacity: 0 }], d(240), { easing: EASE_IN }),
@@ -347,6 +352,7 @@ async function closeArticle(pop = false) {
 	catsEl.inert = false;
 	const L = lists[S.shownI];
 	park(L);
+	if (wasAbout) await railGrow();
 	await blocksIn(L);
 	noTrans(L, false);
 	readBusy = false;
@@ -371,7 +377,10 @@ function startReading() {
 	applyLang(S.lang, node);
 	fillEmail(node);
 	root_.classList.add('reading');
-	if (isAbout(node)) aboutInstant(ident);
+	if (isAbout(node)) {
+		aboutInstant(ident);
+		railInstant(0);
+	}
 	readingSlug = node.dataset.slug ?? null;
 	openedFromHome = false;
 	history.replaceState({ reading: readingSlug }, '', location.pathname);
@@ -561,7 +570,7 @@ $('#lang-btn').addEventListener('click', async () => {
 	emphasizeNow(reading && readCat >= 0 ? readCat : S.catI);
 
 	await Promise.all([bannerIn(), fadeNames(0, 1, d(520))]);
-	await railGrow();
+	if (!aboutNow()) await railGrow();
 	if (reading) {
 		reading.build();
 		await Promise.all([
@@ -800,7 +809,7 @@ addEventListener('resize', () => {
 		markCat(S.catI);
 		emphasizeNow(S.catI);
 		buildRail(railFoot());
-		railInstant(S.stage === 'home' ? 1 : 0);
+		railInstant(S.stage === 'home' && !aboutNow() ? 1 : 0);
 		const L = lists[S.catI];
 		noTrans(L, true);
 		layout(L);

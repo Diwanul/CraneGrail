@@ -85,6 +85,9 @@ function step(p: number, v: number, target: number, dt: number) {
 }
 ```
 
+更多语言和长行折在下面：
+
+::::fold[更多代码：Python、Bash、超长一行]
 ```python
 # Python
 def fib(n: int) -> int:
@@ -104,6 +107,7 @@ node scripts/upload.mjs --dry-run
 ```js
 const veryLongLine = ['这一行故意写得很长，超过正文栏的宽度，代码块应该可以横向滚动而不是把整页撑宽', 'and it keeps going', 'and going'].join(' — ');
 ```
+::::
 
 ## 五、表格
 
@@ -185,6 +189,7 @@ const veryLongLine = ['这一行故意写得很长，超过正文栏的宽度，
 
 段落三。雨停的时候，云裂开一道缝，光从缝里漏下来，照在积水上，像一条路。
 
+:::fold[8.2 和 8.3 折起来了，点开看]
 ### 8.2 第二段落组
 
 段落一。读书的时候，最好的状态是忘了自己在读书。
@@ -196,6 +201,7 @@ const veryLongLine = ['这一行故意写得很长，超过正文栏的宽度，
 ### 8.3 第三段落组
 
 最后一节。滚到这里时，左边的目录应该只有这一节（和它的上级）亮着。
+:::
 
 # 附录
 
