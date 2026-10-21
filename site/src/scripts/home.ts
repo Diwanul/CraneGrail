@@ -3,6 +3,7 @@
 
 import { applyLang, getLang, storeLang } from './i18n';
 import { Reader } from './reader';
+import { aboutIn, aboutInstant, aboutOut, aboutPrep, aboutReset, isAbout } from './about';
 import { $, $$, boot, d, EASE, EASE_IN, hooks, reduce, run, S, setStage, wait } from './home/core';
 import {
 	buildFrame,
@@ -286,6 +287,7 @@ async function openArticle(href: string, push = true) {
 	const node = document.importNode(doc, true);
 	applyLang(S.lang, node);
 	fillEmail(node);
+	if (isAbout(node)) aboutPrep(node);
 	readerEl.replaceChildren(node);
 	readerEl.scrollTop = 0;
 	// 从特殊分类进来的：章节行换到文章所属的普通分类
@@ -297,10 +299,14 @@ async function openArticle(href: string, push = true) {
 	document.title = `${node.dataset.title ?? ''} · ${document.title.split(' · ').pop()}`;
 	if (push) history.pushState({ reading: readingSlug }, '', new URL(href, location.href).pathname);
 	reading = new Reader(readerEl, node, tocEl, railX, tocSpan, reduce);
+	// About 卷首：banner 上的头像和名字飞下来放大，称号、座右铭、图标随后淡入。
+	// 和正文淡入同时开始；正文这时不横移，否则飞行的落点会差那一段
+	const about = isAbout(node);
 	await Promise.all([
-		run(readerEl, [{ opacity: 0, transform: 'translateX(-18px)' }, { opacity: 1, transform: 'translateX(0)' }], d(420)),
+		run(readerEl, about ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: 'translateX(-18px)' }, { opacity: 1, transform: 'translateX(0)' }], d(420)),
 		run(tocEl, [{ opacity: 0 }, { opacity: 1 }], d(420), { delay: d(120) }),
 		run(infoEl, [{ opacity: 0, transform: 'translate(-12px, -50%)' }, { opacity: 1, transform: 'translate(0, -50%)' }], d(420), { delay: d(60) }),
+		about && aboutIn(node, ident, d),
 	]);
 	catsEl.inert = true;
 	readBusy = false;
@@ -310,12 +316,19 @@ async function openArticle(href: string, push = true) {
 async function closeArticle(pop = false) {
 	if (!reading || readBusy) return;
 	readBusy = true;
+	const doc = readerEl.querySelector<HTMLElement>('.reader-doc');
+	if (isAbout(doc) && readerEl.scrollTop < 40) await aboutOut(doc, ident, d);
 	await Promise.all([
 		run(readerEl, [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-18px)' }], d(300), { easing: EASE_IN }),
 		run(tocEl, [{ opacity: 1 }, { opacity: 0 }], d(240), { easing: EASE_IN }),
 		run(infoEl, [{ opacity: 1 }, { opacity: 0 }], d(240), { easing: EASE_IN }),
 	]);
 	infoEl.replaceChildren();
+	// 卷首滚出屏幕了就不飞：头像和名字在 banner 上直接淡回来
+	if (ident.style.visibility === 'hidden') {
+		aboutReset(ident);
+		run(ident, [{ opacity: 0 }, { opacity: 1 }], d(300));
+	}
 	reading.destroy();
 	reading = null;
 	readingSlug = null;
@@ -358,6 +371,7 @@ function startReading() {
 	applyLang(S.lang, node);
 	fillEmail(node);
 	root_.classList.add('reading');
+	if (isAbout(node)) aboutInstant(ident);
 	readingSlug = node.dataset.slug ?? null;
 	openedFromHome = false;
 	history.replaceState({ reading: readingSlug }, '', location.pathname);
@@ -670,6 +684,11 @@ ident.addEventListener('click', () => {
 			openArticle('/about/');
 		}
 	}
+});
+
+// About 卷首的大头像 = banner 上的头像搬下来了，点它同样回主页
+readerEl.addEventListener('click', (e) => {
+	if ((e.target as HTMLElement).closest('.ah-av') && reading) closeArticle();
 });
 
 dialog.addEventListener('click', (e) => {

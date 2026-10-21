@@ -9,7 +9,7 @@
 // 装饰：封面图左上、右下两个角；引用一个左上角。代码块不加框。
 
 import { InkGroup } from './ink';
-import { cardCorner, catCorner, DIALOG_ORNAMENT, dialogCorner, marker, ornament, P, place, placeCorner } from './home/frame';
+import { cardCorner, DIALOG_ORNAMENT, marker, ornament, P, place, placeCorner } from './home/frame';
 
 type Level = 1 | 2 | 3;
 type Section = { el: HTMLElement; level: Level; item: HTMLAnchorElement; lit: boolean };
@@ -37,6 +37,57 @@ export class Reader {
 		this.build();
 		this.scroller.addEventListener('scroll', this.onScroll, { passive: true });
 		this.doc.addEventListener('click', this.onAnchor);
+		this.doc.addEventListener('click', this.onFold);
+	}
+
+	/**
+	 * 折叠块（:::fold，渲染成 <details class="fold">）：接管展开 / 收起，换成动画。
+	 *   展开  先打开，内容区高度从 0 长到实际高度，左边那道竖线自上而下写出来，内容随后淡入下移到位；
+	 *   收起  倒着放，放完才真的关上。三角在点下的那一刻就转过去。
+	 * 正文高度变了，放完重排目录（折起来的标题不挂在线上）。
+	 */
+	private onFold = (e: MouseEvent) => {
+		const sum = (e.target as HTMLElement).closest('summary');
+		const det = sum?.parentElement;
+		if (!sum || !(det instanceof HTMLDetailsElement) || !det.classList.contains('fold') || !this.doc.contains(det)) return;
+		e.preventDefault();
+		this.toggleFold(det);
+	};
+
+	private async toggleFold(det: HTMLDetailsElement) {
+		const body = det.querySelector<HTMLElement>(':scope > .fold-body');
+		if (!body) return;
+		for (const a of body.getAnimations({ subtree: true })) a.cancel();
+		const opening = !det.open || det.classList.contains('closing');
+		const ms = this.reduce ? 0 : 1;
+		if (opening) {
+			det.classList.remove('closing');
+			det.open = true;
+			const h = body.scrollHeight;
+			const kids = [...body.children] as HTMLElement[];
+			await Promise.all([
+				body.animate([{ height: '0px', opacity: 0.4 }, { height: `${h}px`, opacity: 1 }], { duration: 380 * ms, easing: 'cubic-bezier(.2,.8,.2,1)' }).finished,
+				body.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 420 * ms, easing: 'cubic-bezier(.3,.7,.2,1)', pseudoElement: '::before' }).finished,
+				...kids.slice(0, 12).map(
+					(k, i) => k.animate([{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 320 * ms, delay: (90 + i * 40) * ms, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' }).finished,
+				),
+			]).catch(() => {});
+		} else {
+			det.classList.add('closing');
+			const h = body.offsetHeight;
+			const ok = await Promise.all([
+				body.animate([{ height: `${h}px`, opacity: 1 }, { height: '0px', opacity: 0 }], { duration: 300 * ms, easing: 'cubic-bezier(.55,0,.8,.2)' }).finished,
+				body.animate([{ transform: 'scaleY(1)' }, { transform: 'scaleY(0)', transformOrigin: 'top' }], { duration: 260 * ms, easing: 'cubic-bezier(.55,0,.8,.2)', pseudoElement: '::before' }).finished,
+			]).then(
+				() => true,
+				() => false,
+			);
+			// 半路又被点开了：那边接管，这边不关
+			if (!ok || !det.classList.contains('closing')) return;
+			det.classList.remove('closing');
+			det.open = false;
+		}
+		this.build();
 	}
 
 	/**
@@ -58,6 +109,7 @@ export class Reader {
 	destroy() {
 		this.scroller.removeEventListener('scroll', this.onScroll);
 		this.doc.removeEventListener('click', this.onAnchor);
+		this.doc.removeEventListener('click', this.onFold);
 		cancelAnimationFrame(this.raf);
 		this.toc.replaceChildren();
 	}
@@ -68,8 +120,8 @@ export class Reader {
 		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		svg.setAttribute('viewBox', `0 0 ${innerWidth} ${innerHeight}`);
 		this.toc.appendChild(svg);
-		// 只给读者看得见的标题挂目录（脚注区的「Footnotes」是给读屏用的 .sr-only，不挂）
-		const heads = [...this.doc.querySelectorAll<HTMLElement>('.doc-body h1, .doc-body h2, .doc-body h3')].filter((h) => !h.classList.contains('sr-only'));
+		// 只给读者看得见的标题挂目录（脚注区的「Footnotes」是给读屏用的 .sr-only，不挂；折起来的也不挂）
+		const heads = [...this.doc.querySelectorAll<HTMLElement>('.doc-body h1, .doc-body h2, .doc-body h3')].filter((h) => !h.classList.contains('sr-only') && !h.closest('details:not([open])'));
 		const [top, bottom] = this.span();
 		this.span0 = [top, bottom];
 		const x = this.railX();
@@ -143,17 +195,9 @@ export class Reader {
 				...placeCorner(svg, cardCorner(Math.min(w * 0.22, 160), h * 0.3), -8, -8, 1, 1),
 				...placeCorner(svg, cardCorner(Math.min(w * 0.22, 160), h * 0.3), w + 8, h + 8, -1, -1),
 			]);
-		// About 卷首：和封面对话框同一套框——左上、右上两个角，底边中央一个底饰
+		// About 卷首：底边中央一个和封面对话框同款的底饰，把卷首和正文隔开
 		const head = this.doc.querySelector<HTMLElement>('.about-head');
-		if (head)
-			add(head, (svg, w, h) => [
-				...placeCorner(svg, dialogCorner(Math.min(w * 0.28, 200), h * 0.55), 0, 0, 1, 1),
-				...placeCorner(svg, dialogCorner(Math.min(w * 0.28, 200), h * 0.55), w, 0, -1, 1),
-				...place(svg, ornament({ ...DIALOG_ORNAMENT, rule: Math.min(w * 0.2, 160) }), (q) => P(w / 2 + q.x, h + q.y)),
-			]);
-		// 链接卡片：当前章节那种小角，右上、右下
-		for (const a of this.doc.querySelectorAll<HTMLElement>('.about-link'))
-			add(a, (svg, w, h) => [...placeCorner(svg, catCorner(Math.min(w * 0.4, 60), h * 0.42), w, 0, -1, 1), ...placeCorner(svg, catCorner(Math.min(w * 0.4, 60), h * 0.42), w, h, -1, -1), ...place(svg, marker('small'), (q) => P(q.x, h / 2 + q.y))]);
+		if (head) add(head, (svg, w, h) => place(svg, ornament({ ...DIALOG_ORNAMENT, rule: Math.min(w * 0.2, 160) }), (q) => P(w / 2 + q.x, h + q.y)));
 		for (const q of this.doc.querySelectorAll<HTMLElement>('.doc-body blockquote'))
 			add(q, (svg, w, h) => placeCorner(svg, cardCorner(Math.min(w * 0.18, 90), Math.min(h * 0.7, 60)), 0, 0, 1, 1));
 	}

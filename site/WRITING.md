@@ -44,7 +44,7 @@ heroImage: './my-post.assets/cover.jpg'        # 可选，block 左侧的图，�
 category: 'thoughts'                           # 可选，对应 site.json categories 的 id
                                               # 路径相对于这篇 md 自己，必须以 ./ 开头
 updatedDate: '2026-08-20'                     # 可选，最后修改日期：改过文章就更新它，排序和列表日期按它
-layout: about                                  # 可选，about 版式（卷首 + 链接卡片）
+layout: about                                  # 可选，about 版式（卷首：头像、名字、称号、座右铭、图标链接）
 ---
 ```
 
@@ -108,3 +108,13 @@ frontmatter 里的路径要以 `./` 开头，且相对于这个 md 文件本身�
 frontmatter 写 `draft: true`，或者干脆放在内容目录的 `posts/` 外面。
 刻意不做 `draft: true` 之类的机制：这个站本质是本地文章的线上镜像，
 草稿阶段完全在本地进行，没必要让线上仓库承担草稿状态。
+
+## 折叠块
+
+```md
+:::fold[标题]
+折起来的内容。
+:::
+```
+
+标题后加 `{open}` 默认展开；嵌套时外层多写一个冒号。详见仓库根的 CONTENT.md。

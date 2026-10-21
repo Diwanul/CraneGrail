@@ -5,7 +5,6 @@
 import { Image } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 import AboutHead from './AboutHead.astro';
-import AboutLinks from './AboutLinks.astro';
 import FormattedDate from './FormattedDate.astro';
 import { config, t } from '../lib/site';
 import { tr, UI } from '../lib/ui';
@@ -19,7 +18,7 @@ interface Props {
 	heroImage?: ImageMetadata;
 	category?: string;
 	plain?: boolean;
-	/** 版式：about 多一个卷首和底部链接卡片（frontmatter 的 layout） */
+	/** 版式：about 多一个卷首（头像、名字、称号、座右铭、图标链接）（frontmatter 的 layout） */
 	layout?: 'article' | 'about';
 }
 const { slug, title, description, pubDate, updatedDate, heroImage, category, plain = false, layout = 'article' } = Astro.props;
@@ -57,5 +56,4 @@ const home = category && !SPECIAL.has(category) && config.categories.some((c) =>
 	<div class:list={['prose doc-body', { 'about-body': about }]}>
 		<slot />
 	</div>
-	{about && <AboutLinks />}
 </section>

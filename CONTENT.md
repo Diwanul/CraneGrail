@@ -26,7 +26,8 @@
 | `favicon` | 无 → 内置图标 | 浏览器标签页图标 |
 | `categories` | 无 → 置顶、最新 + 文章里出现过的分类 + 其他 | `[{ "id", "label", "icon"? }]`，按顺序排在主页底部。`icon` 可以是 `assets/` 下的图片，也可以是内置图标名（`pinned` `latest` `other` `search` `game` `thoughts` `life` `books` `film` `music` `code` `travel` `generic`）；不写时按 `id` 找同名内置图标，找不到用 `generic`。见下面的「特殊分类」 |
 | `pinned` | `[]` | 文章 slug 列表，按这个顺序组成「置顶」分类，并在「最新」里带「置顶」标记 |
-| `links` | `[]` | `[{ "label", "href" }]`。主页不显示，在 About 页底部排成带框的链接卡片（`email` 也会排进去） |
+| `links` | `[]` | `[{ "label", "href", "icon"? }]`。主页不显示，在 About 卷首头像下方排成一排图标（`email` 也会排进去）。`icon` 是内置图标名（`github` `x` `bilibili` `zhihu` `weibo` `steam` `youtube` `rss` `email` `link`）或 `assets/` 下的图片；不写按网址猜 |
+| `about` | 都空 | About 卷首两侧名字的称号和座右铭：`{ "author": { "titles": [...], "motto" }, "blog": { "titles": [...], "motto" } }`。`titles` 可以是一个或一串（竖着排在名字上方，第一个在最上面），每项都可以写成 `{ "zh", "en" }`；`blog.motto` 不写用 `site.description` |
 | `copyright` | 无 → `© 年份 作者` | 主页最下方的版权行；写 `""` 不显示 |
 | `email` | 无 | `{ "user", "domain" }`。拆成两半是为了不让爬虫从源码里抓到完整地址 |
 | `preview` | `{ "port": 4321, "host": "127.0.0.1", "open": true }` | `scripts/preview.mjs` 用；命令行 `--port` / `--host` / `--no-open` 优先 |
@@ -104,7 +105,7 @@
 
 About 就是 `posts/about.md` 这篇普通文章：和别的文章一样出现在主页列表、搜索和 RSS 里，按 `category` 归类；只是多一个入口——主页上点头像打开它。
 
-它可以用专门的版式：frontmatter 写 `layout: about`，正文前多一个卷首（大头像、作者名 · 站名、`site.description`），正文后多一排 `links` 和 `email` 的链接卡片。不写就是普通文章的版式。任何文章都可以写 `layout: about`。没有 `about.md` 时，`/about/` 给一页空的 About 版式（「这里暂时还空着」）。
+它可以用专门的版式：frontmatter 写 `layout: about`，正文前多一个卷首。打开时 banner 上的头像和两侧名字飞下来、放大成卷首；随后名字上方向上淡入称号（`about.*.titles`，可以竖着一串），下方淡入座右铭（`about.*.motto`），头像背后散出一排图标链接落到头像下方（`links` + `email`）。点卷首的大头像同样回主页。剩下的内容就是 markdown 正文。不写 `layout` 就是普通文章的版式；任何文章都可以写 `layout: about`。没有 `about.md` 时，`/about/` 给一页空的 About 版式（「这里暂时还空着」）。
 
 文章页和 About 都用主页同一个外壳渲染（直接打开或刷新也一样），关闭后回到主页。
 
@@ -116,6 +117,20 @@ About 就是 `posts/about.md` 这篇普通文章：和别的文章一样出现�
 
 文章标题不会自动放在正文上面：需要的话在 markdown 里写 `# 标题`，它会作为一级挂到线上。
 
+## 折叠块
+
+```md
+:::fold[标题]
+折起来的内容，可以是任何 markdown。
+:::
+
+:::fold[默认展开]{open}
+...
+:::
+```
+
+点标题展开 / 收起：三角转过去，内容区往下长出来，左边一道竖线跟着写下去，内容逐段淡入；收起时倒着放。嵌套时外层多写一个冒号（`::::fold[外]` … `::::`）。折起来的小节标题不挂在目录上，展开后再挂上。没有脚本时就是浏览器原生的 `<details>`。
+
 ## 文章 frontmatter
 
 ```yaml
@@ -125,6 +140,6 @@ description: '一句话简介'                   # block 里标题下面那行
 category: 'thoughts'                      # 对应 categories 的 id；不写归入「其他」
 heroImage: './my-post.assets/cover.jpg'   # block 左侧的图；相对这篇 md，以 ./ 开头
 updatedDate: '2026-01-05'                 # 最后修改日期；排序（新的在上）和列表上的日期都按它，不写就用 pubDate
-layout: about                             # 可选：about 版式（卷首 + 链接卡片），默认 article
+layout: about                             # 可选：about 版式（头像、名字、称号、座右铭、图标链接的卷首），默认 article
 draft: true                               # 不进构建
 ```

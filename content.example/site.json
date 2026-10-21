@@ -22,6 +22,32 @@
   "links": [
     { "label": "GitHub", "href": "https://github.com/example" }
   ],
+  "about": {
+    "author": {
+      "titles": [
+        {
+          "zh": "写字的人",
+          "en": "Writer"
+        },
+        {
+          "zh": "写代码的人",
+          "en": "Coder"
+        }
+      ],
+      "motto": {
+        "zh": "慢一点，看清楚。",
+        "en": "Slow down and look."
+      }
+    },
+    "blog": {
+      "titles": [
+        {
+          "zh": "笔记与随想",
+          "en": "Notes & Essays"
+        }
+      ]
+    }
+  },
   "email": { "user": "hello", "domain": "example.com" },
   "fonts": {
     "titleZh": null,

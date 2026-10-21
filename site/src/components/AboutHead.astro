@@ -1,20 +1,65 @@
 ---
-// layout: about 的卷首：大头像 + 两侧名字 + 一句简介（site.json 的 site.description）
+// layout: about 的卷首。打开 About 时，banner 上的头像和两侧名字「搬」到这里放大（scripts/about.ts），
+// 然后：名字上方向上淡入称号（可以竖着一串），下方淡入座右铭，头像背后淡出一排图标落到头像下方。
+//   称号 / 座右铭  site.json 的 about.author、about.blog（blog 的座右铭默认 site.description）
+//   图标          site.json 的 links，再加 email
 import { Image } from 'astro:assets';
+import type { AboutSide, Loc } from '../lib/config-types';
 import { asset, config, t } from '../lib/site';
 import { tr } from '../lib/ui';
+import LinkIcon from './LinkIcon.astro';
 
 const avatar = asset(config.avatar);
+const sides: { cls: string; name: Loc; v: AboutSide }[] = [
+	{ cls: 'ah-l', name: config.site.author, v: config.about.author },
+	{ cls: 'ah-r', name: config.site.title, v: config.about.blog },
+];
+const hasText = (l: Loc) => !!(l.zh || l.en);
 ---
 
 <header class="about-head">
-	<div class="about-av">
-		{avatar ? <Image src={avatar} alt="" width={320} height={320} /> : <span class="about-av-blank" />}
+	{
+		sides.map((s) => (
+			<div class={`ah-side ${s.cls}`}>
+				{s.v.titles.length > 0 && (
+					<ul class="ah-titles">
+						{s.v.titles.map((x) => (
+							<li class="ah-title" {...tr(x)}>
+								{t(x)}
+							</li>
+						))}
+					</ul>
+				)}
+				<p class="ah-name" {...tr(s.name)}>
+					{t(s.name)}
+				</p>
+				{hasText(s.v.motto) && (
+					<p class="ah-motto" {...tr(s.v.motto)}>
+						{t(s.v.motto)}
+					</p>
+				)}
+			</div>
+		))
+	}
+	<div class="ah-center">
+		<div class="ah-av">
+			{avatar ? <Image src={avatar} alt="" width={320} height={320} /> : <span class="ah-av-blank" />}
+		</div>
+		{
+			(config.links.length > 0 || config.email) && (
+				<nav class="ah-links" aria-label="Links">
+					{config.links.map((l) => (
+						<a class="ah-link" href={l.href} target="_blank" rel="noopener" title={t(l.label)} aria-label={t(l.label)}>
+							<LinkIcon icon={l.icon} />
+						</a>
+					))}
+					{config.email && (
+						<a class="ah-link" href="#" data-email title="Email" aria-label="Email">
+							<LinkIcon icon="email" />
+						</a>
+					)}
+				</nav>
+			)
+		}
 	</div>
-	<p class="about-names">
-		<span {...tr(config.site.author)}>{t(config.site.author)}</span>
-		<span class="about-dot" aria-hidden="true">·</span>
-		<span {...tr(config.site.title)}>{t(config.site.title)}</span>
-	</p>
-	{(config.site.description.zh || config.site.description.en) && <p class="about-tag" {...tr(config.site.description)}>{t(config.site.description)}</p>}
 </header>

@@ -222,98 +222,214 @@ body.article-page .rail {
 	}
 }
 
-/* ---------- About ---------- */
+/* ---------- About 卷首（layout: about） ---------- */
 
-.about {
-	padding-top: 40px;
-}
+/*
+ * 三列：左名字 · 头像 · 右名字。名字和头像中心对齐；称号叠在名字上方（竖着一串），座右铭在名字下方，
+ * 图标链接一排在头像下方。两侧的子元素直接排进外层网格（display: contents），这样上下对得齐。
+ */
 .about-head {
 	position: relative;
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	grid-template-rows: auto auto auto;
+	grid-template-areas:
+		'lt . rt'
+		'ln av rn'
+		'lm lk rm';
+	column-gap: 34px;
+	align-items: center;
+	padding: 18px 0 44px;
+	margin-bottom: 56px;
+}
+.ah-side,
+.ah-center {
+	display: contents;
+}
+.ah-l .ah-titles { grid-area: lt; }
+.ah-r .ah-titles { grid-area: rt; }
+.ah-l .ah-name { grid-area: ln; }
+.ah-r .ah-name { grid-area: rn; }
+.ah-l .ah-motto { grid-area: lm; }
+.ah-r .ah-motto { grid-area: rm; }
+.ah-av { grid-area: av; }
+.ah-links { grid-area: lk; }
+.ah-l > * {
+	justify-self: end;
+	text-align: right;
+}
+.ah-r > * {
+	justify-self: start;
+	text-align: left;
+}
+.ah-titles {
+	align-self: end;
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	text-align: center;
-	padding: 34px 0 30px;
-	margin-bottom: 64px;
+	gap: 4px;
+	margin: 0 0 10px;
+	padding: 0;
+	list-style: none;
 }
-.about-av {
-	width: 132px;
-	height: 132px;
+.ah-title {
+	margin: 0;
+	font-family: var(--font-title);
+	font-size: calc(var(--fs-title) * 0.62);
+	letter-spacing: 0.14em;
+	color: var(--fg-muted);
+	text-shadow: var(--text-shadow);
+}
+/* .ah-name 和 .ah-av 也用在飞行中的克隆上（挂在 body 下），所以样式不能依赖外层 */
+.ah-name {
+	margin: 0;
+	font-family: var(--font-title);
+	font-size: calc(var(--fs-title) * 1.7);
+	line-height: 1.15;
+	letter-spacing: 0.08em;
+	color: var(--fg-strong);
+	text-shadow: var(--text-shadow);
+	white-space: nowrap;
+}
+.ah-motto {
+	align-self: start;
+	max-width: 15em;
+	margin: 12px 0 0;
+	font-family: var(--font-body);
+	font-size: var(--fs-body);
+	line-height: 1.7;
+	color: var(--fg);
+	text-shadow: var(--text-shadow);
+}
+.ah-av {
+	position: relative;
+	z-index: 1;
+	width: 150px;
+	height: 150px;
 	border-radius: 50%;
 	overflow: hidden;
+	cursor: pointer;
 	box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22), 0 0 0 6px rgba(0, 0, 0, 0.35), 0 18px 50px rgba(0, 0, 0, 0.6);
 }
-.about-av img,
-.about-av-blank {
+.ah-av img,
+.ah-av-blank {
 	display: block;
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
-	background: #2a2c34;
+	background: radial-gradient(circle at 50% 50%, #3a3a44 30%, #1c1c22 31%);
 }
-.about-names {
-	margin: 22px 0 0;
-	font-family: var(--font-title);
-	font-size: calc(var(--fs-title) * 1.15);
-	letter-spacing: 0.1em;
-	color: #fff;
-	text-shadow: var(--text-shadow);
+.ah-fly {
+	position: fixed;
+	z-index: 40;
+	margin: 0;
+	padding: 0;
+	transform-origin: 0 0;
+	pointer-events: none;
 }
-.about-dot {
-	margin: 0 0.6em;
-	color: var(--fg-muted);
+.ah-links {
+	align-self: start;
+	display: flex;
+	justify-content: center;
+	gap: 14px;
+	margin-top: 18px;
 }
-.about-tag {
-	margin: 10px 0 0;
-	max-width: 30em;
-	font-family: var(--font-body);
-	font-size: var(--fs-body);
-	line-height: 1.8;
+.ah-link {
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
 	color: var(--fg);
-	text-shadow: var(--text-shadow);
+	filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+	transition: color 0.2s, transform 0.2s;
 }
-.about-body {
-	max-width: 640px;
-	margin: 0 auto;
+.ah-link:hover,
+.ah-link:focus-visible {
+	color: #fff;
+	transform: translateY(-2px);
 }
-.about-empty {
+.link-icon {
+	width: 24px;
+	height: 24px;
+	object-fit: contain;
+}
+svg.link-icon path {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.5;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+.about-body .about-empty {
 	text-align: center;
 	color: var(--fg-muted);
 }
-.about-links {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: center;
-	gap: 22px 34px;
-	margin: 46px auto 0;
-	max-width: 640px;
+
+/* ---------- 折叠块（:::fold[标题] … :::） ---------- */
+
+/*
+ * 收着：一行标题，左边一个朝右的小三角。展开：三角转向下，内容区从上往下长出来，
+ * 左边一道竖线跟着写下去，内容逐段淡入（动画在 scripts/reader.ts 的 toggleFold）。
+ */
+.doc-body details.fold {
+	margin: 1.4em 0;
 }
-.about-link {
+.doc-body .fold > summary {
 	position: relative;
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	min-width: 170px;
-	padding: 14px 22px;
-	text-decoration: none;
-	color: inherit;
-}
-.about-link-label {
+	display: block;
+	list-style: none;
+	padding: 0.2em 0 0.2em 1.6em;
 	font-family: var(--font-title);
-	font-size: 18px;
-	letter-spacing: 0.08em;
+	letter-spacing: 0.04em;
 	color: #fff;
+	cursor: pointer;
+	user-select: none;
 	text-shadow: var(--text-shadow);
 }
-.about-link-href {
-	font-family: var(--font-body);
-	font-size: 13px;
-	color: var(--fg-muted);
+.doc-body .fold > summary::-webkit-details-marker {
+	display: none;
 }
-.about-link:hover .about-link-label {
+.doc-body .fold > summary::before {
+	content: '';
+	position: absolute;
+	left: 0.25em;
+	top: 50%;
+	width: 0;
+	height: 0;
+	margin-top: -0.32em;
+	border-left: 0.5em solid var(--frame);
+	border-top: 0.32em solid transparent;
+	border-bottom: 0.32em solid transparent;
+	filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9));
+	transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.doc-body .fold[open]:not(.closing) > summary::before {
+	transform: rotate(90deg);
+}
+.doc-body .fold > summary:hover {
 	text-decoration: underline;
 	text-underline-offset: 5px;
 	text-decoration-thickness: 1px;
+}
+.doc-body .fold-body {
+	position: relative;
+	overflow: hidden;
+	padding: 0.2em 0 0.2em 1.6em;
+}
+.doc-body .fold-body::before {
+	content: '';
+	position: absolute;
+	left: 0.48em;
+	top: 0.3em;
+	bottom: 0.3em;
+	width: 1.5px;
+	background: linear-gradient(var(--frame), rgba(236, 234, 230, 0.15));
+	transform-origin: top;
+}
+.doc-body .fold-body > :first-child {
+	margin-top: 0.4em;
+}
+.doc-body .fold-body > :last-child {
+	margin-bottom: 0.4em;
 }
 
 /* ---------- 阅读时的章节行：只留当前这一格，右边写文章标题和发布时间 ---------- */

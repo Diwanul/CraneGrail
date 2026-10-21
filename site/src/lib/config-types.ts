@@ -20,6 +20,11 @@ export interface Slide {
 	source: Loc;
 }
 
+export interface AboutSide {
+	titles: Loc[];
+	motto: Loc;
+}
+
 export interface SiteConfig {
 	site: {
 		author: Loc;
@@ -34,7 +39,10 @@ export interface SiteConfig {
 	categories: Category[];
 	searchCategory: Category;
 	pinned: string[];
-	links: { label: Loc; href: string }[];
+	/** icon：内置图标名（github / x / email / link …）或 assets/ 下的图片 */
+	links: { label: Loc; href: string; icon: string }[];
+	/** About 卷首两侧名字的称号（竖着排，上面的在最上）和座右铭 */
+	about: { author: AboutSide; blog: AboutSide };
 	fonts: {
 		titleZh: string | null;
 		titleEn: string | null;

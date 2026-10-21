@@ -3,6 +3,7 @@
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import { defineConfig, fontProviders } from 'astro/config';
+import fold from './plugins/fold.mjs';
 import { loadContent } from './scripts/load-content.mjs';
 
 // 内容目录（文章、配置、图片）与代码分离，见 scripts/load-content.mjs
@@ -11,7 +12,8 @@ const { config, contentDir } = loadContent();
 // https://astro.build/config
 export default defineConfig({
 	site: config.site.url,
-	integrations: [mdx(), sitemap()],
+	// fold：:::fold[标题] … ::: 可折叠块（见 plugins/fold.mjs）
+	integrations: [fold(), mdx(), sitemap()],
 	// 内容目录可能在 site/ 之外（默认是仓库根的 content/），dev server 默认不许读项目根以外
 	vite: { server: { fs: { allow: ['..', contentDir] } } },
 	build: {

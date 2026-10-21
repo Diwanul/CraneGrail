@@ -47,8 +47,16 @@ export const DEFAULTS = {
 	categories: null,
 	/** 「置顶」分类里的文章 slug，按这里的顺序排 */
 	pinned: [],
-	/** 主页底部显示的链接：[{ label, href }] */
+	/** About 卷首头像下方的一排图标链接：[{ label, href, icon? }]。icon 不写按网址猜（github / x / bilibili / zhihu / weibo / steam / youtube / rss / email / link） */
 	links: [],
+	/**
+	 * About 卷首（文章 frontmatter 写 layout: about 时）：两侧名字上方竖着一串称号，下方一句座右铭。
+	 * blog.motto 不写就用 site.description。
+	 */
+	about: {
+		author: { titles: [], motto: '' },
+		blog: { titles: [], motto: null },
+	},
 	/** 邮箱拆成两半，页面上运行时才拼起来。null = 不显示 */
 	email: null,
 	/**
@@ -119,6 +127,24 @@ const SPECIAL = {
 	other: { zh: '其他', en: 'Other' },
 	search: { zh: '搜索', en: 'Search' },
 };
+
+/** 链接图标：按网址猜内置图标名 */
+function guessIcon(href) {
+	const h = String(href).toLowerCase();
+	if (h.startsWith('mailto:')) return 'email';
+	for (const [k, re] of [
+		['github', /github\.com/],
+		['x', /(^|\/\/|\.)(x|twitter)\.com/],
+		['bilibili', /bilibili\.com|b23\.tv/],
+		['zhihu', /zhihu\.com/],
+		['weibo', /weibo\.(com|cn)/],
+		['steam', /steam(community|powered)\.com/],
+		['youtube', /youtube\.com|youtu\.be/],
+		['rss', /rss|atom|\.xml($|\?)/],
+	])
+		if (re.test(h)) return k;
+	return 'link';
+}
 
 // ---------- 内容目录 ----------
 
@@ -276,8 +302,13 @@ function normalize(cfg, contentDir) {
 
 	cfg.pinned = Array.isArray(cfg.pinned) ? cfg.pinned.filter((s) => typeof s === 'string') : [];
 	cfg.links = Array.isArray(cfg.links)
-		? cfg.links.filter((l) => isObj(l) && l.href).map((l) => ({ label: loc(l.label, String(l.href)), href: String(l.href) }))
+		? cfg.links.filter((l) => isObj(l) && l.href).map((l) => ({ label: loc(l.label, String(l.href)), href: String(l.href), icon: typeof l.icon === 'string' && l.icon ? l.icon : guessIcon(l.href) }))
 		: [];
+	const side = (v, motto) => ({
+		titles: Array.isArray(v?.titles) ? v.titles.filter(has).map((x) => loc(x)) : has(v?.titles) ? [loc(v.titles)] : [],
+		motto: has(v?.motto) ? loc(v.motto) : motto,
+	});
+	cfg.about = { author: side(cfg.about?.author, loc('')), blog: side(cfg.about?.blog, S.description) };
 	cfg.copyright = has(cfg.copyright) ? loc(cfg.copyright) : null;
 	const F = cfg.fonts;
 	for (const k of ['titleZh', 'titleEn', 'bodyZh', 'bodyEn']) F[k] = typeof F[k] === 'string' && F[k] ? F[k] : null;

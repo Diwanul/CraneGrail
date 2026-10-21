@@ -17,7 +17,7 @@ const posts = defineCollection({
 			heroImage: z.optional(image()),
 			/** 对应 site.json categories 里的 id。不写就只出现在「全部」里 */
 			category: z.string().optional(),
-			/** 版式：article 普通文章；about 多一个卷首（大头像、名字、简介）和底部的链接卡片 */
+			/** 版式：article 普通文章；about 多一个卷首：放大的头像和名字、称号、座右铭、图标链接 */
 			layout: z.enum(['article', 'about']).default('article'),
 			/** 草稿不进构建 */
 			draft: z.boolean().default(false),
