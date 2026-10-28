@@ -1,4 +1,4 @@
-# diwanul-web
+# CraneGrail
 
 一个游戏 UI 风格的个人博客框架：对话框式的封面幻灯片、横向章节环和纵向文章列组成的主页、在主页里就地展开的阅读页。
 所有框线都是脚本按元素尺寸实时生成的手写笔画。纯静态站点，基于 [Astro](https://astro.build)。
@@ -25,7 +25,7 @@
 需要 Node.js 22.12 以上。
 
 ```bash
-git clone https://github.com/Diwanul/diwanul-web.git && cd diwanul-web
+git clone https://github.com/Diwanul/CraneGrail.git && cd CraneGrail
 cp -r content.example content       # 复制一份示例内容，之后改成你自己的
 cd site && npm install && cd ..
 node scripts/preview.mjs            # http://127.0.0.1:4321，改内容自动刷新
@@ -112,4 +112,4 @@ CSP 写在 `dist/staticwebapp.config.json` 里。Astro 会把小脚本自动内�
 
 ## 许可证
 
-代码以 [MIT](LICENSE) 许可证发布。`content.example/` 里的示例文章仅作演示；
+代码以 [MIT](LICENSE) 许可证发布。`content.example/` 里的示例文章仅作演示。
