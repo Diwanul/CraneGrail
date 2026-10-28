@@ -491,6 +491,12 @@ addEventListener('popstate', (e) => {
 	else if (!reading && st?.reading) openArticle(`/${st.reading}/`, false);
 });
 
+// .stage 是 overflow: hidden，但文章卡片列会把它撑出可滚动的范围。浏览器的 scrollIntoView、
+// 页内锚点、焦点移动都可能把它滚走，整个阅读区就被顶上去（下边界跑到屏幕中间）。它永远不该滚
+stageEl.addEventListener('scroll', () => {
+	if (stageEl.scrollTop || stageEl.scrollLeft) stageEl.scrollTo(0, 0);
+});
+
 // 鼠标悬停在已选中的卡片上时就先取文章，点开时几乎不用等
 stageEl.addEventListener('pointerover', (e) => {
 	const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('.block.active a');

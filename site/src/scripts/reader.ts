@@ -101,10 +101,27 @@ export class Reader {
 		const id = decodeURIComponent(a.getAttribute('href')!.slice(1));
 		const el = id ? document.getElementById(id) : null;
 		if (!el || !this.doc.contains(el)) return;
-		el.scrollIntoView({ behavior: this.reduce ? 'auto' : 'smooth', block: 'center' });
+		this.scrollTo(el, 'center');
 		// 落点闪一下，告诉读者跳到了哪
 		el.animate([{ backgroundColor: 'rgba(255, 255, 255, 0.16)' }, { backgroundColor: 'rgba(255, 255, 255, 0)' }], { duration: 1400, easing: 'ease-out' });
 	};
+
+	/**
+	 * 只滚阅读区自己。不用 scrollIntoView：它会把所有能滚的祖先都滚一遍，
+	 * 包括 overflow: hidden 的 .stage，整个阅读区就被顶上去、下边界跑到屏幕中间。
+	 */
+	private scrollTo(el: HTMLElement, block: 'start' | 'center') {
+		const behavior: ScrollBehavior = this.reduce ? 'auto' : 'smooth';
+		if (!(this.scroller instanceof HTMLElement)) {
+			el.scrollIntoView({ behavior, block });
+			return;
+		}
+		const box = this.scroller.getBoundingClientRect();
+		const r = el.getBoundingClientRect();
+		const margin = parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
+		const y = block === 'start' ? r.top - box.top - margin : r.top - box.top - (box.height - r.height) / 2;
+		this.scroller.scrollTo({ top: this.scroller.scrollTop + y, behavior });
+	}
 
 	destroy() {
 		this.scroller.removeEventListener('scroll', this.onScroll);
@@ -139,7 +156,7 @@ export class Reader {
 			item.style.top = `${y}px`;
 			item.addEventListener('click', (e) => {
 				e.preventDefault();
-				el.scrollIntoView({ behavior: this.reduce ? 'auto' : 'smooth', block: 'start' });
+				this.scrollTo(el, 'start');
 			});
 			this.toc.appendChild(item);
 			new InkGroup(place(svg, marker(SIZE[level]), (q) => P(x + q.x, y + q.y))).draw(1);
