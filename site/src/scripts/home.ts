@@ -314,6 +314,43 @@ async function openArticle(href: string, push = true) {
 	(node.querySelector('h1') as HTMLElement | null)?.focus?.({ preventScroll: true });
 }
 
+/**
+ * 阅读区按键滚动：目标位置累加，rAF 里朝目标指数逼近，按住键连发时也是连续的一条，不会一顿一顿。
+ * 中途用滚轮或拖滚动条：下一次按键从当前位置重新算起。
+ */
+let scrollGoal = 0;
+let scrollRaf = 0;
+/** 上一帧写进去的位置；和实际位置对不上 = 别人（滚轮、滚动条）动过 */
+let scrollMine = -1;
+function readScroll(delta: number) {
+	const max = readerEl.scrollHeight - readerEl.clientHeight;
+	if (!scrollRaf) scrollGoal = readerEl.scrollTop;
+	scrollGoal = Math.min(max, Math.max(0, scrollGoal + delta));
+	if (reduce) {
+		readerEl.scrollTop = scrollGoal;
+		return;
+	}
+	if (scrollRaf) return;
+	let t0 = performance.now();
+	scrollMine = readerEl.scrollTop;
+	const stop = () => {
+		scrollRaf = 0;
+		scrollMine = -1;
+	};
+	const frame = (now: number) => {
+		const dt = Math.min(50, now - t0);
+		t0 = now;
+		const cur = readerEl.scrollTop;
+		if (Math.abs(cur - scrollMine) > 2) return stop();
+		const left = scrollGoal - cur;
+		readerEl.scrollTop = Math.abs(left) < 0.5 ? scrollGoal : cur + left * (1 - Math.exp(-dt / 70));
+		scrollMine = readerEl.scrollTop;
+		if (Math.abs(scrollGoal - scrollMine) < 0.5) return stop();
+		scrollRaf = requestAnimationFrame(frame);
+	};
+	scrollRaf = requestAnimationFrame(frame);
+}
+
 /** 正在读的是 About 版式（没有标示线） */
 const aboutNow = () => !!reading && isAbout(readerEl.querySelector<HTMLElement>('.reader-doc'));
 
@@ -669,8 +706,12 @@ addEventListener('keydown', (e) => {
 		fn();
 	};
 	if (reading || readBusy) {
-		// 阅读时方向键、空格留给页面滚动；Esc 回主页
+		// 阅读时：↑ ↓ 一格（和滚轮一格一样），← → 一大段（大半屏）；空格、PageUp/Down 留给浏览器；Esc 回主页
 		if (k === 'Escape') handled(() => closeArticle());
+		else if (reading && !readBusy) {
+			const step = k === 'ArrowDown' ? 100 : k === 'ArrowUp' ? -100 : k === 'ArrowRight' ? readerEl.clientHeight * 0.8 : k === 'ArrowLeft' ? -readerEl.clientHeight * 0.8 : 0;
+			if (step) handled(() => readScroll(step));
+		}
 		return;
 	}
 	if (k === 'ArrowRight') handled(() => switchCat(neighbor(S.catI, 1), 1));
