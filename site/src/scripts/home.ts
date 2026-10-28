@@ -315,41 +315,86 @@ async function openArticle(href: string, push = true) {
 }
 
 /**
- * 阅读区按键滚动：目标位置累加，rAF 里朝目标指数逼近，按住键连发时也是连续的一条，不会一顿一顿。
- * 中途用滚轮或拖滚动条：下一次按键从当前位置重新算起。
+ * 阅读区按键滚动，两种：
+ *   ↑ ↓  按住滑行：按下起步加速到匀速，一直滑到松手，松手后缓缓停下（不管键盘连发）
+ *   ← →  一大段：目标位置累加，朝目标指数逼近，连按也是连续的一条
+ * 中途用滚轮或拖滚动条：放手，从当前位置重新算。
  */
-let scrollGoal = 0;
+const GLIDE_V = 0.75; // 匀速，px/ms
+const GLIDE_UP = 220; // 起步到匀速的时间常数，ms
+const GLIDE_DOWN = 160; // 松手后减速的时间常数，ms
+let glideDir: 0 | 1 | -1 = 0;
+let glideV = 0;
+let jumpGoal: number | null = null;
 let scrollRaf = 0;
 /** 上一帧写进去的位置；和实际位置对不上 = 别人（滚轮、滚动条）动过 */
-let scrollMine = -1;
-function readScroll(delta: number) {
+let scrollMine = 0;
+let scrollPos = 0;
+let scrollT = 0;
+
+function scrollStop() {
+	cancelAnimationFrame(scrollRaf);
+	scrollRaf = 0;
+	glideV = 0;
+	jumpGoal = null;
+}
+
+function scrollFrame(now: number) {
+	const dt = Math.min(50, now - scrollT);
+	scrollT = now;
+	if (Math.abs(readerEl.scrollTop - scrollMine) > 2) return scrollStop();
 	const max = readerEl.scrollHeight - readerEl.clientHeight;
-	if (!scrollRaf) scrollGoal = readerEl.scrollTop;
-	scrollGoal = Math.min(max, Math.max(0, scrollGoal + delta));
+	if (jumpGoal !== null) {
+		const left = jumpGoal - scrollPos;
+		scrollPos = Math.abs(left) < 0.5 ? jumpGoal : scrollPos + left * (1 - Math.exp(-dt / 70));
+		if (scrollPos === jumpGoal) jumpGoal = null;
+	} else {
+		const want = glideDir * GLIDE_V;
+		glideV += (want - glideV) * (1 - Math.exp(-dt / (glideDir ? GLIDE_UP : GLIDE_DOWN)));
+		scrollPos += glideV * dt;
+	}
+	scrollPos = Math.min(max, Math.max(0, scrollPos));
+	readerEl.scrollTop = scrollPos;
+	scrollMine = readerEl.scrollTop;
+	const atEdge = (scrollPos <= 0 && glideV < 0) || (scrollPos >= max && glideV > 0);
+	if (jumpGoal === null && !glideDir && (Math.abs(glideV) < 0.01 || atEdge)) return scrollStop();
+	scrollRaf = requestAnimationFrame(scrollFrame);
+}
+
+function scrollKick() {
+	if (scrollRaf) return;
+	scrollPos = scrollMine = readerEl.scrollTop;
+	scrollT = performance.now();
+	scrollRaf = requestAnimationFrame(scrollFrame);
+}
+
+function glide(dir: 0 | 1 | -1) {
+	glideDir = dir;
+	if (!dir) return;
 	if (reduce) {
-		readerEl.scrollTop = scrollGoal;
+		readerEl.scrollTop += dir * 100;
 		return;
 	}
-	if (scrollRaf) return;
-	let t0 = performance.now();
-	scrollMine = readerEl.scrollTop;
-	const stop = () => {
-		scrollRaf = 0;
-		scrollMine = -1;
-	};
-	const frame = (now: number) => {
-		const dt = Math.min(50, now - t0);
-		t0 = now;
-		const cur = readerEl.scrollTop;
-		if (Math.abs(cur - scrollMine) > 2) return stop();
-		const left = scrollGoal - cur;
-		readerEl.scrollTop = Math.abs(left) < 0.5 ? scrollGoal : cur + left * (1 - Math.exp(-dt / 70));
-		scrollMine = readerEl.scrollTop;
-		if (Math.abs(scrollGoal - scrollMine) < 0.5) return stop();
-		scrollRaf = requestAnimationFrame(frame);
-	};
-	scrollRaf = requestAnimationFrame(frame);
+	jumpGoal = null;
+	scrollKick();
 }
+
+function jump(delta: number) {
+	const max = readerEl.scrollHeight - readerEl.clientHeight;
+	if (reduce) {
+		readerEl.scrollTop = Math.min(max, Math.max(0, readerEl.scrollTop + delta));
+		return;
+	}
+	glideV = 0;
+	const from = scrollRaf ? (jumpGoal ?? scrollPos) : readerEl.scrollTop;
+	jumpGoal = Math.min(max, Math.max(0, from + delta));
+	scrollKick();
+}
+
+addEventListener('keyup', (e) => {
+	if ((e.key === 'ArrowDown' && glideDir === 1) || (e.key === 'ArrowUp' && glideDir === -1)) glide(0);
+});
+addEventListener('blur', () => glide(0));
 
 /** 正在读的是 About 版式（没有标示线） */
 const aboutNow = () => !!reading && isAbout(readerEl.querySelector<HTMLElement>('.reader-doc'));
@@ -706,11 +751,11 @@ addEventListener('keydown', (e) => {
 		fn();
 	};
 	if (reading || readBusy) {
-		// 阅读时：↑ ↓ 一格（和滚轮一格一样），← → 一大段（大半屏）；空格、PageUp/Down 留给浏览器；Esc 回主页
+		// 阅读时：↑ ↓ 按住平滑滑行，← → 一大段（大半屏）；空格、PageUp/Down 留给浏览器；Esc 回主页
 		if (k === 'Escape') handled(() => closeArticle());
 		else if (reading && !readBusy) {
-			const step = k === 'ArrowDown' ? 100 : k === 'ArrowUp' ? -100 : k === 'ArrowRight' ? readerEl.clientHeight * 0.8 : k === 'ArrowLeft' ? -readerEl.clientHeight * 0.8 : 0;
-			if (step) handled(() => readScroll(step));
+			if (k === 'ArrowDown' || k === 'ArrowUp') handled(() => !e.repeat && glide(k === 'ArrowDown' ? 1 : -1));
+			else if (k === 'ArrowRight' || k === 'ArrowLeft') handled(() => jump((k === 'ArrowRight' ? 0.8 : -0.8) * readerEl.clientHeight));
 		}
 		return;
 	}
