@@ -1,26 +1,111 @@
 {
   "_comment": "站点的全部可定制项都在这里。可选项不填就当作没有；必需项不填会用默认值。完整字段说明见仓库根 CONTENT.md。",
   "site": {
-    "author": "Author",
-    "title": "Blog",
-    "description": "示例站点：笔记与随想。",
+    "author": {
+      "zh": "Author",
+      "en": "Author"
+    },
+    "title": {
+      "zh": "Blog",
+      "en": "Blog"
+    },
+    "description": {
+      "zh": "示例站点：笔记与随想。",
+      "en": "Sample site: notes and essays."
+    },
     "lang": "zh-CN",
     "url": "https://example.com"
   },
   "avatar": "assets/avatar.svg",
+  "favicon": null,
   "categories": [
-    { "id": "pinned", "label": { "zh": "置顶", "en": "Pinned" } },
-    { "id": "latest", "label": { "zh": "最新", "en": "Latest" } },
-    { "id": "game", "label": { "zh": "游戏", "en": "Games" } },
-    { "id": "thoughts", "label": { "zh": "随感", "en": "Ideas" } },
-    { "id": "life", "label": { "zh": "生活", "en": "Life" } },
-    { "id": "books", "label": { "zh": "书籍", "en": "Books" } },
-    { "id": "film", "label": { "zh": "电影", "en": "Film" } },
-    { "id": "other", "label": { "zh": "其他", "en": "Other" } }
+    {
+      "id": "pinned",
+      "label": {
+        "zh": "置顶",
+        "en": "Pinned"
+      },
+      "icon": null
+    },
+    {
+      "id": "latest",
+      "label": {
+        "zh": "最新",
+        "en": "Latest"
+      },
+      "icon": null
+    },
+    {
+      "id": "game",
+      "label": {
+        "zh": "游戏",
+        "en": "Games"
+      },
+      "icon": null
+    },
+    {
+      "id": "thoughts",
+      "label": {
+        "zh": "随感",
+        "en": "Ideas"
+      },
+      "icon": null
+    },
+    {
+      "id": "life",
+      "label": {
+        "zh": "生活",
+        "en": "Life"
+      },
+      "icon": null
+    },
+    {
+      "id": "books",
+      "label": {
+        "zh": "书籍",
+        "en": "Books"
+      },
+      "icon": null
+    },
+    {
+      "id": "film",
+      "label": {
+        "zh": "电影",
+        "en": "Film"
+      },
+      "icon": null
+    },
+    {
+      "id": "other",
+      "label": {
+        "zh": "其他",
+        "en": "Other"
+      },
+      "icon": null
+    },
+    {
+      "id": "search",
+      "label": {
+        "zh": "搜索",
+        "en": "Search"
+      },
+      "icon": null
+    }
   ],
-  "pinned": ["markdown-test", "hetang-yuese", "reader-demo"],
+  "pinned": [
+    "markdown-test",
+    "hetang-yuese",
+    "reader-demo"
+  ],
   "links": [
-    { "label": "GitHub", "href": "https://github.com/example" }
+    {
+      "label": {
+        "zh": "GitHub",
+        "en": "GitHub"
+      },
+      "href": "https://github.com/example",
+      "icon": null
+    }
   ],
   "about": {
     "author": {
@@ -45,10 +130,17 @@
           "zh": "笔记与随想",
           "en": "Notes & Essays"
         }
-      ]
+      ],
+      "motto": {
+        "zh": "示例站点：笔记与随想。",
+        "en": "Sample site: notes and essays."
+      }
     }
   },
-  "email": { "user": "hello", "domain": "example.com" },
+  "email": {
+    "user": "hello",
+    "domain": "example.com"
+  },
   "fonts": {
     "titleZh": null,
     "titleEn": null,
@@ -59,21 +151,74 @@
     "lineSize": 25,
     "categorySize": 20
   },
+  "copyright": null,
   "cover": {
     "slides": [
-      { "image": "assets/cover-1.svg", "text": "Stay curious, keep building." },
-      { "image": "assets/cover-2.svg", "text": ["“Not all those who wander are lost.”", "— J.R.R. Tolkien"] },
-      { "image": "assets/cover-3.svg", "text": ["“What we know is a drop, what we don’t know is an ocean.”", "— Isaac Newton"] }
+      {
+        "image": "assets/cover-1.svg",
+        "text": {
+          "zh": [
+            "保持好奇，继续建造。",
+            ""
+          ],
+          "en": [
+            "Stay curious, keep building.",
+            ""
+          ]
+        }
+      },
+      {
+        "image": "assets/cover-2.svg",
+        "text": {
+          "zh": [
+            "「浪迹天涯者，未必皆迷途。」",
+            "—— J.R.R. 托尔金"
+          ],
+          "en": [
+            "“Not all those who wander are lost.”",
+            "— J.R.R. Tolkien"
+          ]
+        }
+      },
+      {
+        "image": "assets/cover-3.svg",
+        "text": {
+          "zh": [
+            "「已知是一滴水，未知是一片海。」",
+            "—— 艾萨克·牛顿"
+          ],
+          "en": [
+            "“What we know is a drop, what we don’t know is an ocean.”",
+            "— Isaac Newton"
+          ]
+        }
+      }
     ],
     "interval": 7000,
-    "dim": 0.35,
-    "speed": 2
+    "speed": 2,
+    "dim": 0.35
+  },
+  "layout": {
+    "bannerHeight": 84,
+    "avatarSize": 56,
+    "blockWidth": 1040,
+    "blockHeight": 176,
+    "blockImageRatio": 1.7778,
+    "blockGap": 30,
+    "activeScale": 1.06,
+    "railWidth": 2,
+    "categoryWidth": 196,
+    "categoryHeight": 60,
+    "categoryGap": 30,
+    "categoryActiveScale": 1.32
   },
   "motion": {
     "speed": 1
   },
   "preview": {
     "port": 4321,
+    "host": "127.0.0.1",
     "open": true
-  }
+  },
+  "upload": null
 }
