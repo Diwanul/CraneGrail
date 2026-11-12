@@ -3,7 +3,7 @@ import BaseHead from '../components/BaseHead.astro';
 import { config, htmlStyle, t } from '../lib/site';
 ---
 
-<html lang={config.site.lang} style={htmlStyle()}>
+<html lang={config.defaultLang === 'en' ? config.site.lang : 'zh-CN'} style={htmlStyle()}>
 	<head>
 		<BaseHead title={`页面不存在 · ${t(config.site.title)}`} description="这里没有东西。" />
 		<meta name="robots" content="noindex" />

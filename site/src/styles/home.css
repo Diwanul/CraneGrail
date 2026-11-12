@@ -132,7 +132,14 @@ html[data-stage='cover'] .cover {
 	bottom: 4vh;
 	transform: translateX(-50%);
 	width: min(90vw, calc(980 * var(--u)));
-	min-height: calc(150 * var(--u));
+	/*
+	 * 高度固定，不随台词行数变：上下内边距 + 三行台词（行高 1.9）+ 一行出处（行高 1.8，上边距 6）。
+	 * 台词和出处在里面上下居中；短的一行也是同样大的框，换幻灯片时框不会一伸一缩。
+	 */
+	height: calc(108 * var(--u) + var(--fs-line) * (3 * 1.9 + 1.8) + 6 * var(--u));
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
 	padding: calc(48 * var(--u)) calc(80 * var(--u)) calc(60 * var(--u));
 	cursor: pointer;
 }

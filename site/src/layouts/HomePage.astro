@@ -71,7 +71,7 @@ const boot = {
 };
 ---
 
-<html lang={config.site.lang} style={htmlStyle()} data-stage="boot" class={open ? 'reading' : undefined}>
+<html lang={config.defaultLang === 'en' ? config.site.lang : 'zh-CN'} style={htmlStyle()} data-stage="boot" class={open ? 'reading' : undefined}>
 	<head>
 		<BaseHead title={open ? `${open.title} · ${t(config.site.title)}` : t(config.site.title)} description={open?.description} image={open?.image ?? avatar} />
 	</head>
@@ -147,13 +147,6 @@ const boot = {
 						</svg>
 					</span>
 				</form>
-				<button class="lang side" id="lang-btn" type="button" aria-label={t(UI.toggleLang)} {...trLabel(UI.toggleLang)}>
-					<svg viewBox="0 0 24 24" aria-hidden="true">
-						<circle cx="12" cy="12" r="8.5" />
-						<path d="M 3.5 12 H 20.5 M 12 3.5 C 8.7 6.8 8.7 17.2 12 20.5 M 12 3.5 C 15.3 6.8 15.3 17.2 12 20.5" />
-					</svg>
-					<span class="lang-code" id="lang-code">{lang === 'zh' ? '中' : 'EN'}</span>
-				</button>
 			</header>
 
 			<main class="stage" id="stage">

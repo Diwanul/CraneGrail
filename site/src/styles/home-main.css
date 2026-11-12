@@ -66,8 +66,7 @@ html.show-home .home .rail {
 .side {
 	opacity: 0;
 }
-.search-btn,
-.lang {
+.search-btn {
 	display: inline-flex;
 	align-items: center;
 	gap: calc(6 * var(--u));
@@ -83,12 +82,10 @@ html.show-home .home .rail {
 .search-btn {
 	width: calc(38 * var(--u));
 }
-.search-btn:hover,
-.lang:hover {
+.search-btn:hover {
 	background: rgba(255, 255, 255, 0.08);
 }
-.search-btn svg,
-.lang svg {
+.search-btn svg {
 	flex: none;
 	width: calc(22 * var(--u));
 	height: calc(22 * var(--u));
@@ -96,12 +93,6 @@ html.show-home .home .rail {
 	stroke: currentColor;
 	stroke-width: 1.5;
 	stroke-linecap: round;
-}
-.lang-code {
-	min-width: 1.6em;
-	font-size: 0.85rem;
-	letter-spacing: 0.06em;
-	color: var(--fg);
 }
 
 /* 搜索：放大镜右侧延伸出一条线，线上方就是输入框 */

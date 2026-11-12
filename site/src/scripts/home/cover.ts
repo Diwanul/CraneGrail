@@ -366,10 +366,6 @@ export function coverHidden() {
 }
 
 /** 切语言：封面上正在显示的台词换成另一种语言 */
-export function relangCover() {
-	if (S.stage === 'cover' && phase === 'idle') textNow(S.slideI);
-}
-
 // ---------------------------------------------------------------- 左右边缘
 
 // 鼠标进入左右边缘区：以鼠标为中心晕开一团暗影，暗影中心「写」出一个朝外的小箭头。

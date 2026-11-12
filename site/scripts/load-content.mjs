@@ -278,7 +278,9 @@ function normalize(cfg, contentDir) {
 	S.title = loc(S.title, DEFAULTS.site.title);
 	S.description = loc(S.description);
 	S.lang = String(S.lang || DEFAULTS.site.lang);
-	cfg.defaultLang = /^en\b/i.test(S.lang) ? 'en' : 'zh';
+	// 英文模式已暂停：界面一律中文。site.lang 和各处的 { zh, en } 照常读入；恢复时换回下一行
+	// cfg.defaultLang = /^en\b/i.test(S.lang) ? 'en' : 'zh';
+	cfg.defaultLang = 'zh';
 
 	// 分类：all 是旧名字，等同 latest
 	const postsDir = path.join(contentDir, 'posts');

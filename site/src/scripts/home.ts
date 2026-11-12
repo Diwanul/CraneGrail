@@ -1,7 +1,7 @@
 // 主页 + 封面的入口：章节切换、搜索、语言、输入、启动。
 // 封面在 home/cover.ts，章节行的滑动在 home/track.ts，文章列和标示线在 home/list.ts。
 
-import { applyLang, getLang, storeLang } from './i18n';
+import { applyLang } from './i18n';
 import { Reader } from './reader';
 import { aboutIn, aboutInstant, aboutOut, aboutPrep, aboutReset, isAbout } from './about';
 import { $, $$, boot, d, EASE, EASE_IN, hooks, reduce, run, S, setStage, wait } from './home/core';
@@ -21,7 +21,6 @@ import {
 	placeIdent,
 	preload,
 	redrawCover,
-	relangCover,
 } from './home/cover';
 import {
 	blocksIn,
@@ -175,7 +174,7 @@ async function cycle() {
 
 /** 切到第 to 个章节；d = 方向（键盘、滚轮给 ±1，点卡片给 0 走近路） */
 function switchCat(to: number, d = 0) {
-	if (S.stage !== 'home' || entering || langBusy) return;
+	if (S.stage !== 'home' || entering) return;
 	if (to < 0 || to === S.catI) return;
 	dir = d;
 	S.catI = to;
@@ -184,7 +183,7 @@ function switchCat(to: number, d = 0) {
 }
 
 function move(dir: number) {
-	if (S.stage !== 'home' || phase !== 'idle' || entering || langBusy) return;
+	if (S.stage !== 'home' || phase !== 'idle' || entering) return;
 	const l = lists[S.catI];
 	const id = l.dataset.cat!;
 	const cur = S.selBy[id] ?? 0;
@@ -616,65 +615,8 @@ sInput.addEventListener('keydown', (e) => {
 
 // ---------------------------------------------------------------- 语言
 
-const langCode = $('#lang-code');
-
-function setLang(l: typeof S.lang) {
-	S.lang = l;
-	applyLang(l);
-	langCode.textContent = l === 'zh' ? '中' : 'EN';
-	relangCover();
-}
-
-// 切换语言：和离开主页同一套动作把内容收掉（文章卡片 / 正文 → 标示线 → banner 和章节行 → 名字），
-// 但不回封面，换成另一种语言后，再按进主页的顺序放出来。阅读时同理：正文、目录、标题条代替文章卡片。
-let langBusy = false;
-const names = $$('.name', ident);
-const fadeNames = (a: number, b: number, ms: number) =>
-	Promise.all(names.map((n) => run(n, [{ opacity: a }, { opacity: b }], ms, a > b ? { easing: EASE_IN } : {})));
-
-$('#lang-btn').addEventListener('click', async () => {
-	if (langBusy || S.stage !== 'home' || entering || readBusy) return;
-	langBusy = true;
-	while (phase !== 'idle') await wait(40);
-	const l = S.lang === 'zh' ? 'en' : 'zh';
-	storeLang(l);
-	closeSearch();
-	home.inert = true;
-	const L = lists[S.shownI];
-	if (reading) {
-		await Promise.all([
-			run(readerEl, [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-18px)' }], d(300), { easing: EASE_IN }),
-			run(tocEl, [{ opacity: 1 }, { opacity: 0 }], d(240), { easing: EASE_IN }),
-			run(infoEl, [{ opacity: 1 }, { opacity: 0 }], d(240), { easing: EASE_IN }),
-		]);
-	} else await blocksOut(L);
-	await railShrink();
-	await Promise.all([bannerOut(), fadeNames(1, 0, d(420))]);
-
-	setLang(l);
-	await Promise.all([document.fonts?.ready, wait(d(120))]);
-	placeIdent();
-	buildCatFrames();
-	emphasizeNow(reading && readCat >= 0 ? readCat : S.catI);
-
-	await Promise.all([bannerIn(), fadeNames(0, 1, d(520))]);
-	if (!aboutNow()) await railGrow();
-	if (reading) {
-		reading.build();
-		await Promise.all([
-			run(readerEl, [{ opacity: 0, transform: 'translateX(-18px)' }, { opacity: 1, transform: 'translateX(0)' }], d(420)),
-			run(tocEl, [{ opacity: 0 }, { opacity: 1 }], d(420), { delay: d(120) }),
-			run(infoEl, [{ opacity: 0 }, { opacity: 1 }], d(420), { delay: d(60) }),
-		]);
-	} else {
-		park(L);
-		await blocksIn(L);
-		noTrans(L, false);
-	}
-	home.inert = false;
-	langBusy = false;
-	focusActive();
-});
+// 只保留中文：中英切换按钮和切换动画已去掉。页面上的 data-zh / data-en、site.json 里的 { zh, en }
+// 都还在（i18n.ts 的 applyLang 也在），以后要恢复英文模式时把按钮和切换流程加回来即可。
 
 // ---------------------------------------------------------------- 封面 ⇄ 主页
 
@@ -833,7 +775,7 @@ let wheelAt = 0;
 addEventListener(
 	'wheel',
 	(e) => {
-		if (reading || readBusy || langBusy) return; // 阅读时滚轮用来滚正文
+		if (reading || readBusy) return; // 阅读时滚轮用来滚正文
 		const now = performance.now();
 		if (now - wheelAt > 280) wheelAcc = 0;
 		wheelAt = now;
@@ -913,9 +855,9 @@ addEventListener('resize', () => {
 // ---------------------------------------------------------------- 启动
 
 (function start() {
-	const l = getLang(boot.lang);
-	if (l !== boot.lang) setLang(l);
-	else S.lang = l;
+	// 只有中文：不管访客以前选过什么（localStorage 里的 lang），一律按中文显示
+	S.lang = 'zh';
+	applyLang('zh');
 
 	const saved = load();
 	if (saved) {
